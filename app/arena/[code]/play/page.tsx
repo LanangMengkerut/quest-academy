@@ -285,6 +285,8 @@ export default function ArenaBattle() {
       correctOption: d.correct_option,
       explanation: d.explanation,
     });
+    // Baca ulang dari DB sebagai konfirmasi (jaga-jaga kalau realtime tersendat)
+    if (me) fetchFighters(roomId, me.id);
     if (d.game_over && d.result) {
       setTimeout(() => setResult(d.result), 1800);
     } else {
