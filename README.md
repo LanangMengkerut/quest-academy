@@ -156,10 +156,13 @@ Workflow database membutuhkan Personal Access Token Supabase **milik owner**, di
 
 Sesudah itu kolaborator tidak memerlukan akun Supabase sama sekali: cukup akses GitHub.
 
+> Status: ✅ secret sudah terpasang dan run pertama workflow berhasil (16 Oktober 2026).
+
 ## 🤝 Panduan kolaborator
 
 - Repo ini privat; yang bisa mengakses hanya yang diundang owner.
 - **Kolaborator cukup punya akun GitHub.** Tidak perlu akun Supabase, tidak perlu tahu token siapa pun — perubahan database berjalan lewat repo ini dan GitHub Actions (lihat bagian Deploy).
+- Baru bergabung dan memakai agen AI (Muse)? Salin **prompt siap pakai** di [docs/PROMPT-KOLABORATOR.md](docs/PROMPT-KOLABORATOR.md) sebagai pesan pertama ke agenmu — isinya konteks proyek, aturan akses, dan langkah setup.
 - Kerjakan perubahan di branch sendiri lalu buat Pull Request ke `main` — jangan push langsung ke `main`.
 - **Jangan pernah commit** `.env.local`, kunci `service_role`, token, atau kredensial apa pun. `.env.example` hanya berisi nama variabel + URL publik.
 - Perubahan skema/konten database ditulis sebagai file SQL di folder `supabase/` dan disebutkan di PR; setelah merge, GitHub Actions menerapkannya otomatis. File SQL wajib idempotent (pakai `IF NOT EXISTS` / `ON CONFLICT DO UPDATE` seperti file yang sudah ada).
