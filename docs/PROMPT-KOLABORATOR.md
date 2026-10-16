@@ -33,14 +33,14 @@ ATURAN AKSES (WAJIB)
   menerima kredensial itu dari siapa pun. Perubahan database hanya lewat
   file SQL di repo (lihat di bawah).
 - Untuk menjalankan lokal kamu hanya butuh anon key Supabase — kunci itu
-  memang publik by design (terlindungi RLS). Minta nilainya ke owner,
-  simpan di .env.local, dan jangan pernah commit file itu.
+  memang publik by design (terlindungi RLS) dan nilainya SUDAH terisi di
+  .env.example repo ini. Jangan pernah commit file .env.local milikmu
+  sendiri.
 
 SETUP
 1. Clone repo, masuk ke foldernya, jalankan: npm install
-2. Salin .env.example menjadi .env.local, isi NEXT_PUBLIC_SUPABASE_URL
-   (sudah tertera di .env.example) dan NEXT_PUBLIC_SUPABASE_ANON_KEY
-   (minta ke owner).
+2. Salin .env.example menjadi .env.local — semua nilai sudah terisi,
+   tidak perlu meminta apa pun ke owner.
 3. Jalankan: npm run dev — pastikan http://localhost:3000 terbuka dan
    menampilkan dua course (Jaringan Komputer & Inteligensi Buatan).
 4. Jalankan: npm run build — pastikan tidak ada error.

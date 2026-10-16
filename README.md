@@ -108,12 +108,7 @@ npm install
 cp .env.example .env.local
 ```
 
-Isi `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://vrdgbppcmstlxgdbuyen.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<ambil dari Supabase: Project Settings → API → anon public>
-```
+Selesai — `.env.example` di repo ini **sudah terisi** URL project + anon key aslinya, jadi `.env.local` hasil salinan langsung bisa dipakai tanpa perlu meminta apa pun ke owner.
 
 Lalu:
 
@@ -166,7 +161,7 @@ Sesudah itu kolaborator tidak memerlukan akun Supabase sama sekali: cukup akses 
 - **Kolaborator cukup punya akun GitHub.** Tidak perlu akun Supabase, tidak perlu tahu token siapa pun — perubahan database berjalan lewat repo ini dan GitHub Actions (lihat bagian Deploy).
 - Baru bergabung dan memakai agen AI (Muse)? Salin **prompt siap pakai** di [docs/PROMPT-KOLABORATOR.md](docs/PROMPT-KOLABORATOR.md) sebagai pesan pertama ke agenmu — isinya konteks proyek, aturan akses, dan langkah setup.
 - Kerjakan perubahan di branch sendiri lalu buat Pull Request ke `main` — jangan push langsung ke `main`.
-- **Jangan pernah commit** `.env.local`, kunci `service_role`, token, atau kredensial apa pun. `.env.example` hanya berisi nama variabel + URL publik.
+- **Jangan pernah commit** `.env.local` milikmu, kunci `service_role`, token, atau kredensial apa pun. `.env.example` memang sengaja berisi URL + anon key karena keduanya publik by design (anon key selalu terkirim ke browser pengunjung; keamanannya dijaga RLS) — bukan rahasia.
 - Perubahan skema/konten database ditulis sebagai file SQL di folder `supabase/` dan disebutkan di PR; setelah merge, GitHub Actions menerapkannya otomatis. File SQL wajib idempotent (pakai `IF NOT EXISTS` / `ON CONFLICT DO UPDATE` seperti file yang sudah ada).
 - Soal dan materi baru mengikuti alur "Menambah materi" di atas — tidak lewat kode.
 

@@ -557,13 +557,13 @@ export function Quiz({
           </div>
         )}
         <div className="qcard">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={qi}
-              initial={{ opacity: 0, x: 48 }}
+              initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -48 }}
-              transition={{ duration: 0.24, ease: "easeOut" }}
+              exit={{ opacity: 0, x: -40, transition: { duration: 0.09 } }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
             >
               <div className="qnum">
                 SOAL {qi + 1} / {session.questions.length}
@@ -575,6 +575,8 @@ export function Quiz({
                   if (picked !== null && result) {
                     if (i === result.correct_option) cls += " correct";
                     else if (i === picked) cls += " wrong";
+                  } else if (picked !== null && i === picked) {
+                    cls += " picked";
                   }
                   return (
                     <motion.button

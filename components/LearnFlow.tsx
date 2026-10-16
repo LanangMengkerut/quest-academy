@@ -77,8 +77,8 @@ export function LearnFlow({
             key={idx}
             initial={{ opacity: 0, x: 56 * dir }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -56 * dir }}
-            transition={{ duration: 0.26, ease: "easeOut" }}
+            exit={{ opacity: 0, x: -56 * dir, transition: { duration: 0.1 } }}
+            transition={{ duration: 0.17, ease: "easeOut" }}
           >
             <div className="qsub">
               {section ? section.title : "Tidak ada penjelasan"}

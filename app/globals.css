@@ -365,3 +365,8 @@ table.lb .rk { font-family: var(--font-pixel); font-size: 11px; color: var(--cya
   50% { transform: scale(1.07); }
 }
 .guardian { text-align: center; padding-top: 6px; }
+.opt.picked {
+  border-color: var(--gold) !important;
+  background: #ffd23f26 !important;
+  box-shadow: 0 0 0 2px var(--gold) inset;
+}
