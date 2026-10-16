@@ -1,64 +1,161 @@
-# Quest Academy — Versi Dinamis
+# 🎮 Quest Academy — Versi Dinamis
 
-Rebuild dinamis dari web belajar gamifikasi **Quest Academy** (aslinya statis di
-belajar.arsene-cloud.my.id) untuk belajar bareng tongkrongan.
+**Belajar sambil main, buat tongkrongan.** Quest Academy adalah web belajar bergaya RPG: baca materi per halaman, lulus checkpoint, kalahkan boss di tiap stage, kumpulkan XP, dan rebut puncak leaderboard bareng teman-teman.
 
-## Stack
+- 🌐 **Live:** https://belajar.antekashing.my.id
+- 🪞 Cadangan: https://quest-academy-beta.vercel.app
+- 📦 Repo: https://github.com/LanangMengkerut/quest-academy (privat — minta akses ke owner kalau belum dapat)
 
-- **Next.js 15** (App Router) + TypeScript, styling dari CSS asli versi statis
-  (font Press Start 2P + Space Grotesk, tema gelap RPG).
-- **Supabase**: Postgres + Auth + RLS. Semua logika kuis (acak opsi, cek
-  jawaban, XP, badge, anti-farming) berjalan sebagai fungsi RPC di database
-  (`SECURITY DEFINER`), jadi kunci jawaban tidak pernah dikirim ke browser.
-- **Vercel** untuk hosting.
+> Ini adalah rebuild dinamis dari web statis Quest Academy lama. Dulu progres hanya tersimpan di `localStorage` browser dan kunci jawaban bisa diintip dari file JSON. Sekarang semuanya server-side: akun, progres tersinkron, dan kunci jawaban tidak pernah dikirim ke browser.
 
-## Cara belajar per stage
+---
+
+## ✨ Fitur
+
+- **Akun username + password** — tanpa email, tanpa Google. Daftar, langsung main.
+- **Belajar bertahap** — materi dipecah jadi halaman-halaman penjelasan yang bisa di-*next* satu per satu; progres bacaan tersimpan per akun.
+- **Checkpoint** — kuis singkat di akhir penjelasan. Wajib lulus supaya battle stage terbuka.
+- **Battle boss** — 5 soal per stage, 3 HP, opsi jawaban **diacak di server** setiap sesi.
+- **XP, level & 7 rank** (Newbie → Mitos), bintang per stage, 6 badge, streak jawaban benar, efek suara WebAudio.
+- **Leaderboard** — peringkat total XP selamanya + kolom XP 7 hari terakhir.
+- **Anti-farming** — XP penuh hanya kalau skor melewati rekor pribadi di stage itu; pengulangan di bawahnya hanya dapat 10% XP.
+- **Akses materi asli** — tiap stage menautkan sumber aslinya (halaman web ITERA untuk Jarkom, PDF Google Drive untuk Inteligensi Buatan).
+
+## 📚 Konten saat ini
+
+| Course | Stage | Sumber materi |
+| --- | --- | --- |
+| 🌐 Jaringan Komputer | 7 (Pertemuan 1–7) | Situs Materi Ajar ITERA — informatika-itera.github.io/jarkom |
+| 🧠 Inteligensi Buatan | 7 (Minggu 1–7) | PDF kuliah di Google Drive |
+| 💻 Pemrograman Web | menyusul | menunggu materi |
+
+Total: 14 stage, 102 halaman penjelasan, 70 soal battle + 42 soal checkpoint.
+
+## 🔄 Cara main (alur per stage)
 
 1. **Intisari** — ringkasan materi di halaman stage.
-2. **Dokumen asli** — tautan ke sumber (halaman web ITERA untuk Jarkom,
-   PDF Google Drive untuk Inteligensi Buatan).
-3. **Penjelasan bertahap** — materi dipecah per halaman (sections), dibaca
-   dengan tombol next/back, progres tersimpan per user.
-4. **Checkpoint** — soal singkat di akhir penjelasan; wajib lulus untuk
-   membuka battle.
-5. **Battle** — boss stage: 3 HP, opsi diacak server, XP penuh hanya bila
-   skor melewati rekor sebelumnya (pengulangan skor sama/turun = 10% XP).
+2. **Penjelasan bertahap** — baca halaman demi halaman (sections).
+3. **Checkpoint** — jawab soal singkat; harus lulus untuk membuka battle.
+4. **Battle** — lawan boss: jawab benar = menyerang, 3× salah = tumbang. Skor ≥60% = menang, 100% = bintang 3.
+5. XP masuk ke profil & leaderboard. Ulangi stage untuk memecahkan rekor (dan dapat XP penuh lagi).
 
-## Akun
+## 🏗️ Arsitektur
 
-Daftar dengan **username + password** (tanpa email/Google). Di belakang
-layar memakai Supabase Auth email+password dengan email sintetis internal
-`username@users.quest-academy.local` yang tidak pernah ditampilkan.
-Konsekuensinya: password lupa tidak bisa direset mandiri — reset dilakukan
-manual oleh admin lewat dashboard Supabase.
-
-## Konten saat ini
-
-- **Jaringan Komputer** — 7 stage dari Materi Ajar ITERA
-  (informatika-itera.github.io/jarkom), Pertemuan 1–7.
-- **Inteligensi Buatan** — 7 stage dari PDF kuliah Minggu 1–7.
-- Tiap stage: sections penjelasan, 3 soal checkpoint, 5 soal battle.
-- Skema database: `supabase/schema.sql`; seed konten: `supabase/seed-*.sql`
-  (dibangkitkan dari sumber oleh skrip di luar repo).
-
-## Menjalankan lokal
-
-```bash
-npm install
-cp .env.example .env.local   # isi anon key dari dashboard Supabase
-npm run dev
+```
+Browser ──► Next.js (Vercel) ──► Supabase (Postgres + Auth)
+                 UI saja            semua logika game di sini
 ```
 
-Environment yang dibutuhkan:
+| Lapisan | Teknologi |
+| --- | --- |
+| Frontend + routing | Next.js 15 (App Router) + TypeScript |
+| Styling | CSS asli versi statis — Press Start 2P + Space Grotesk, tema gelap RPG |
+| Backend & database | Supabase (PostgreSQL, Auth, Row Level Security) |
+| Hosting | Vercel |
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+### Kenapa logika kuis ada di database?
 
-Kunci `service_role` tidak dipakai aplikasi sama sekali.
+Mesin kuisnya adalah dua fungsi RPC PostgreSQL (`start_session` dan `answer_question`, keduanya `SECURITY DEFINER`):
 
-## Catatan keamanan
+- Server membuat sesi, **mengacak urutan opsi**, dan hanya mengirim soal + opsi ke browser — **tanpa** kunci jawaban dan pembahasan.
+- Setiap jawaban dicek di server; pembahasan baru dikirim *setelah* menjawab.
+- Skor, XP, badge, streak, dan anti-farming dihitung dan ditulis server di akhir sesi.
+- Tabel `questions` sengaja **tidak punya policy SELECT** — tidak ada cara membaca kunci jawaban dari API.
 
-- Tabel `questions` tidak punya policy SELECT: jawaban & pembahasan hanya
-  keluar lewat RPC setelah user menjawab.
-- Project Supabase harus mengaktifkan **mailer_autoconfirm** karena email
-  sintetis tidak bisa menerima email konfirmasi.
+Autentikasi memakai Supabase Auth email+password, tetapi user tidak pernah melihat email: username dipetakan ke email sintetis internal `username@users.quest-academy.local`. Konsekuensinya:
+
+- Konfirmasi email harus dimatikan (`mailer_autoconfirm = true` di Supabase Auth) karena email sintetis tidak bisa menerima email.
+- **Tidak ada reset password mandiri.** User yang lupa password direset manual oleh admin lewat dashboard Supabase (Authentication → Users).
+
+## 🗂️ Struktur folder
+
+```
+app/                    Halaman (App Router)
+  page.tsx              Beranda: daftar course + badge
+  login/ register/      Form autentikasi
+  leaderboard/          Papan peringkat
+  course/[courseId]/    Daftar stage per course
+    stage/[stageId]/    Hub stage: intisari + akses materi asli
+      learn/            Penjelasan bertahap + checkpoint
+      battle/           Arena battle boss
+components/             AuthForm, Hud (XP bar), LearnFlow, Quiz, MarkStageRead
+lib/
+  game.ts               Konstanta game: rank, level, bintang, badge, pemetaan username→email
+  sfx.ts                Efek suara WebAudio
+  supabase/             Client Supabase (browser & server)
+supabase/
+  schema.sql            Skema lengkap: tabel, RLS, view statistik, RPC mesin kuis
+  seed-*.sql            Konten: course, stage, sections, soal (dibangkitkan dari sumber)
+middleware.ts           Refresh sesi Supabase
+```
+
+Model data inti: `profiles` · `courses` → `stages` → `sections` + `questions` (`kind`: `checkpoint`/`battle`) · `stage_progress` · `section_progress` · `attempts` · `user_badges` · `battle_sessions`.
+
+## 🚀 Menjalankan lokal
+
+Prasyarat: Node.js 20+ dan npm.
+
+```bash
+git clone https://github.com/LanangMengkerut/quest-academy.git
+cd quest-academy
+npm install
+cp .env.example .env.local
+```
+
+Isi `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://vrdgbppcmstlxgdbuyen.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<ambil dari Supabase: Project Settings → API → anon public>
+```
+
+Lalu:
+
+```bash
+npm run dev        # http://localhost:3000
+npm run build      # cek build production
+```
+
+Catatan keamanan: aplikasi **hanya** memakai anon key (memang dirancang publik, dilindungi RLS). Kunci `service_role` **tidak dipakai** dan tidak boleh pernah masuk repo/kode.
+
+### Menyiapkan database dari nol (kalau fork ke project Supabase lain)
+
+1. Buat project Supabase baru.
+2. Jalankan `supabase/schema.sql` (SQL Editor), lalu `supabase/seed-00-courses.sql`, lalu semua `supabase/seed-*.sql`.
+3. Di **Authentication → Settings**, aktifkan **mailer_autoconfirm** (wajib, lihat penjelasan email sintetis di atas).
+4. Arahkan `.env.local` ke URL + anon key project baru.
+
+## ➕ Menambah materi / stage baru
+
+Konten sepenuhnya database-driven — tidak perlu mengubah kode:
+
+1. Siapkan sumbernya (PDF / halaman web materi).
+2. Pecah jadi: **intisari** (HTML), **sections** (satu baris per halaman penjelasan), **soal checkpoint** (±3) dan **soal battle** (5) — formatnya meniru file `supabase/seed-*.sql` yang sudah ada.
+3. Konvensi ID: stage `jarkom-p8`, `ib-m8`, `pemweb-x1`; section `<stage>-s1`, `s2`, …; soal `<stage>-c1..` (checkpoint) dan `<stage>-b1..` (battle).
+4. Terapkan file seed-nya ke database (SQL Editor / Management API). Urutan opsi di file boleh apa adanya — pengacakan terjadi di server saat sesi dibuat.
+5. Stage langsung muncul di web. Selesai.
+
+## 🚢 Deploy
+
+- Hosting di **Vercel** (project `quest-academy`), env yang dibutuhkan hanya dua variabel `NEXT_PUBLIC_SUPABASE_*` di atas.
+- Domain produksi: **belajar.antekashing.my.id** (CNAME di Cloudflare → `cname.vercel-dns.com`, status *DNS only*).
+- ⚠️ Status saat ini: project Vercel **belum terhubung Git**, jadi push ke GitHub **belum** otomatis men-deploy. Untuk mengaktifkan auto-deploy: Vercel Dashboard → Project → Settings → Git → Connect ke repo ini. Selama belum terhubung, deploy dilakukan manual dari dashboard/upload file.
+
+## 🤝 Panduan kolaborator
+
+- Repo ini privat; yang bisa mengakses hanya yang diundang owner.
+- Kerjakan perubahan di branch sendiri lalu buat Pull Request ke `main` — jangan push langsung ke `main`.
+- **Jangan pernah commit** `.env.local`, kunci `service_role`, token, atau kredensial apa pun. `.env.example` hanya berisi nama variabel + URL publik.
+- Perubahan skema database ditulis sebagai SQL baru di folder `supabase/` dan disebutkan di PR (skema diterapkan manual, belum ada migration otomatis).
+- Soal dan materi baru mengikuti alur "Menambah materi" di atas — tidak lewat kode.
+
+## 🗺️ Roadmap
+
+- [ ] Materi Pemrograman Web (menunggu sumber)
+- [ ] Auto-deploy GitHub → Vercel
+- [ ] Kode pemulihan akun saat registrasi (antisipasi lupa password)
+- [ ] Upload PDF materi ke Supabase Storage (sekarang masih tautan ke sumber asli)
+
+---
+
+Dibangun bareng tongkrongan. Ada ide fitur atau menemukan bug? Bikin issue / PR saja. 🎮
