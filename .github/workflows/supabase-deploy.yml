@@ -1,0 +1,40 @@
+name: Deploy Supabase SQL
+
+# Applies the SQL files in supabase/ (schema + content seeds) to the live
+# Supabase project whenever they change on main. This is how collaborators
+# ship database/content changes with GitHub access only — nobody needs the
+# owner's Supabase Personal Access Token; it lives in the repo's Actions
+# secrets (SUPABASE_ACCESS_TOKEN) and is only used by this workflow.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  apply-sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_PROJECT_REF: vrdgbppcmstlxgdbuyen
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply SQL files to Supabase
+        run: python3 scripts/apply_supabase_sql.py
