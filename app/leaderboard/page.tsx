@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { levelOf, rankOf } from "@/lib/game";
+import { Reveal } from "@/components/Reveal";
 
 type Row = {
   id: string;
@@ -51,6 +52,7 @@ export default async function LeaderboardPage() {
           dan naik level!
         </div>
       ) : (
+        <Reveal>
         <table className="lb">
           <thead>
             <tr>
@@ -81,6 +83,7 @@ export default async function LeaderboardPage() {
             ))}
           </tbody>
         </table>
+        </Reveal>
       )}
       <p className="lbnote">
         Kolom minggu ini dihitung dari XP yang didapat 7 hari terakhir —

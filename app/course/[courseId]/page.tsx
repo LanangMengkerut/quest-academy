@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { starsForScore } from "@/lib/game";
+import { Reveal } from "@/components/Reveal";
 import type { Course, Stage, StageProgress } from "@/lib/types";
 
 export default async function CoursePage({
@@ -56,6 +57,7 @@ export default async function CoursePage({
         {course.tagline} Baca penjelasannya halaman demi halaman, lulus
         checkpoint, lalu tantang boss di akhir setiap stage.
       </p>
+      <Reveal>
       {stages.map((s, i) => {
         const p = progress.get(s.id);
         const best = p?.best_score ?? 0;
@@ -105,6 +107,7 @@ export default async function CoursePage({
           </div>
         );
       })}
+      </Reveal>
       {!user ? (
         <p className="locknote">
           Kamu belum masuk.{" "}

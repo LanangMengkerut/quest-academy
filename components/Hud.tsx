@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { levelOf, RANKS, xpForLevel } from "@/lib/game";
 import { useSound } from "@/lib/useSound";
+import { useMusic } from "@/lib/useMusic";
 import { sfx } from "@/lib/sfx";
 import { createClient } from "@/lib/supabase/client";
 
@@ -33,7 +35,11 @@ export function Hud({ profile }: { profile: ProfileLite }) {
       </div>
       <div className="xpwrap">
         <div className="xpbar">
-          <div style={{ width: `${pct}%` }}></div>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ type: "spring", stiffness: 60, damping: 18 }}
+          ></motion.div>
         </div>
         <div className="xplabel">{profile.xp} XP</div>
       </div>
@@ -54,6 +60,7 @@ export function Hud({ profile }: { profile: ProfileLite }) {
 export function TopNav({ loggedIn }: { loggedIn: boolean }) {
   const router = useRouter();
   const [sound] = useSound();
+  const [music, toggleMusic] = useMusic();
 
   const logout = async () => {
     sfx.click(!sound);
@@ -67,6 +74,13 @@ export function TopNav({ loggedIn }: { loggedIn: boolean }) {
     <nav className="topnav">
       <Link href="/">🏠 Beranda</Link>
       <Link href="/leaderboard">🏆 Leaderboard</Link>
+      <button
+        className="linkbtn"
+        onClick={toggleMusic}
+        title="Musik latar dungeon (nyala/mati)"
+      >
+        {music ? "🎵 Musik: Nyala" : "🔇 Musik: Mati"}
+      </button>
       <span className="spacer" />
       {loggedIn ? (
         <button className="linkbtn" onClick={logout}>

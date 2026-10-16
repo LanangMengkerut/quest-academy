@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BADGES } from "@/lib/game";
+import { WorldGrid } from "@/components/WorldGrid";
+import { Reveal } from "@/components/Reveal";
 import type { Course } from "@/lib/types";
 
 export default async function HomePage() {
@@ -69,42 +71,20 @@ export default async function HomePage() {
         </p>
       ) : null}
       <div className="press-start">▼ PILIH DUNIAMU ▼</div>
-      <div className="worlds">
-        {courses.map((c) => {
-          const st = stats.get(c.id) ?? { stages: 0, tq: 0 };
-          const done = doneByCourse.get(c.id) ?? 0;
-          const pct = st.stages
-            ? Math.round((done / st.stages) * 100)
-            : 0;
-          return (
-            <Link key={c.id} className={`world ${c.id}`} href={`/course/${c.id}`}>
-              <div className="orb"></div>
-              <div className="wic">{c.icon}</div>
-              <h2>{c.title}</h2>
-              <p>{c.tagline}</p>
-              <div className="meta">
-                <span>
-                  📚 <b>{st.stages}</b> materi
-                </span>
-                <span>
-                  ❓ <b>{st.tq}</b> soal
-                </span>
-                <span>
-                  ✅ <b>{done}/{st.stages}</b> selesai
-                </span>
-              </div>
-              <div className="pbar">
-                <div style={{ width: `${pct}%` }}></div>
-              </div>
-              <div className="enter" style={{ marginTop: 14 }}>
-                ▶ MASUK DUNIA
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+      <WorldGrid
+        courses={courses}
+        stats={Array.from(stats.entries()).map(([courseId, v]) => ({
+          courseId,
+          stages: v.stages,
+          tq: v.tq,
+        }))}
+        done={Array.from(doneByCourse.entries()).map(([courseId, done]) => ({
+          courseId,
+          done,
+        }))}
+      />
       {user ? (
-        <div className="badges">
+        <Reveal className="badges">
           <h3>🏅 PENCAPAIAN</h3>
           <div className="badge-row">
             {BADGES.map((b) => {
@@ -125,7 +105,7 @@ export default async function HomePage() {
               );
             })}
           </div>
-        </div>
+        </Reveal>
       ) : null}
       <footer>
         <div className="pixel">QUEST ACADEMY v2.0 — DINAMIS</div>

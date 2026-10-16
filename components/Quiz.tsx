@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useSound } from "@/lib/useSound";
 import { sfx } from "@/lib/sfx";
@@ -35,6 +36,45 @@ type AnswerResult = {
   new_badges?: string[];
 };
 
+type Pose = "idle" | "attack" | "hit" | "dead" | "win" | "pass";
+type Floater = { id: number; side: "player" | "boss" | "guardian"; text: string; cls: string };
+type Bubble = { id: number; who: "player" | "boss" | "guardian"; text: string };
+
+const BOSS_INTRO = [
+  "Berani-beraninya masuk wilayahku!",
+  "Hmph. Satu lagi yang mau coba-coba.",
+  "Jawab dengan benar, atau pulang dengan malu!",
+];
+const BOSS_HURT = ["Argh!", "Lumayan juga kamu...", "Itu cuma goresan!", "Awas kamu ya!"];
+const BOSS_TAUNT = ["Hahaha! Segitu saja?", "Pulang saja sana!", "Salah! Rasakan itu!", "Masih jauh, anak muda."];
+const BOSS_ENRAGE = "GRAAAH! Aku serius sekarang!";
+const PLAYER_GOOD = ["Kena kamu!", "Begitu dong!", "Satu lagi!", "Mantap!"];
+const GUARDIAN_OK = ["Bagus. Kamu paham.", "Silakan lewat... sebentar lagi.", "Benar. Lanjutkan."];
+const GUARDIAN_NO = ["Belum. Baca lagi materinya.", "Gerbang tetap tertutup.", "Jawaban itu belum cukup."];
+
+const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
+
+function poseAnimate(pose: Pose, dir: 1 | -1) {
+  switch (pose) {
+    case "attack":
+      return { x: [0, 30 * dir, 0], rotate: [0, 4 * dir, 0], scale: [1, 1.08, 1] };
+    case "hit":
+      return {
+        x: [0, -12 * dir, 9 * dir, -6 * dir, 3 * dir, 0],
+        rotate: [0, -5 * dir, 4 * dir, -2 * dir, 0],
+        scale: [1, 0.9, 1.05, 1],
+      };
+    case "dead":
+      return { rotate: 78 * dir, y: 16, opacity: 0.5, scale: 0.94, x: 0 };
+    case "win":
+      return { y: [0, -18, 0, -18, 0], rotate: [0, -4, 0, 4, 0], x: 0, opacity: 1, scale: 1 };
+    case "pass":
+      return { y: [0, -12, 0], scale: [1, 1.12, 1], rotate: [0, -3, 0], x: 0, opacity: 1 };
+    default:
+      return { x: 0, rotate: 0, scale: 1, opacity: 1, y: 0 };
+  }
+}
+
 export function Quiz({
   courseId,
   stageId,
@@ -55,7 +95,46 @@ export function Quiz({
   const [bossHp, setBossHp] = useState(0);
   const [playerHp, setPlayerHp] = useState(3);
   const [error, setError] = useState<string | null>(null);
+  const [playerPose, setPlayerPose] = useState<Pose>("idle");
+  const [bossPose, setBossPose] = useState<Pose>("idle");
+  const [guardianPose, setGuardianPose] = useState<Pose>("idle");
+  const [floaters, setFloaters] = useState<Floater[]>([]);
+  const [bubble, setBubble] = useState<Bubble | null>(null);
+  const [cpCorrect, setCpCorrect] = useState(0);
   const startedRef = useRef(false);
+  const timersRef = useRef<number[]>([]);
+  const fxIdRef = useRef(0);
+  const enragedRef = useRef(false);
+
+  const later = useCallback((fn: () => void, ms: number) => {
+    const id = window.setTimeout(fn, ms);
+    timersRef.current.push(id);
+  }, []);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, []);
+
+  const addFloater = useCallback(
+    (side: Floater["side"], text: string, cls: string) => {
+      const id = ++fxIdRef.current;
+      setFloaters((f) => [...f.slice(-3), { id, side, text, cls }]);
+      later(() => setFloaters((f) => f.filter((x) => x.id !== id)), 950);
+    },
+    [later],
+  );
+
+  const say = useCallback(
+    (who: Bubble["who"], text: string) => {
+      const id = ++fxIdRef.current;
+      setBubble({ id, who, text });
+      later(() => {
+        setBubble((b) => (b && b.id === id ? null : b));
+      }, 2300);
+    },
+    [later],
+  );
 
   const start = useCallback(async () => {
     const supabase = createClient();
@@ -75,7 +154,15 @@ export function Quiz({
     setPicked(null);
     setResult(null);
     setFinal(null);
-  }, [stageId, kind]);
+    setPlayerPose("idle");
+    setBossPose("idle");
+    setGuardianPose("idle");
+    setCpCorrect(0);
+    enragedRef.current = false;
+    if (kind === "battle") {
+      later(() => say("boss", pick(BOSS_INTRO)), 350);
+    }
+  }, [stageId, kind, later, say]);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -100,7 +187,13 @@ export function Quiz({
   if (!session) {
     return (
       <div className="empty">
-        <div className="big">⏳</div>
+        <motion.div
+          className="big"
+          animate={{ rotate: [0, 12, -12, 0], scale: [1, 1.15, 1] }}
+          transition={{ repeat: Infinity, duration: 1.2 }}
+        >
+          ⏳
+        </motion.div>
         Menyiapkan {kind === "battle" ? "battle" : "checkpoint"}...
       </div>
     );
@@ -109,8 +202,19 @@ export function Quiz({
   if (final) {
     if (kind === "checkpoint") {
       return (
-        <div className="result">
-          <div className="big">{final.passed ? "✅" : "🔁"}</div>
+        <motion.div
+          className="result"
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 120, damping: 16 }}
+        >
+          <motion.div
+            className="big"
+            animate={final.passed ? { y: [0, -12, 0] } : { rotate: [0, -8, 8, 0] }}
+            transition={{ repeat: 2, duration: 0.5 }}
+          >
+            {final.passed ? "✅" : "🔁"}
+          </motion.div>
           <h2 className={final.passed ? "win" : "lose"}>
             {final.passed ? "CHECKPOINT LULUS!" : "BELUM LULUS"}
           </h2>
@@ -143,28 +247,42 @@ export function Quiz({
               ← Kembali
             </Link>
           </div>
-        </div>
+        </motion.div>
       );
     }
     const score = final.score ?? 0;
     const stars = starsForScore(score);
     const win = score >= 60;
     return (
-      <div className="result">
-        <div className="big">{win ? "🏆" : "💀"}</div>
+      <motion.div
+        className="result"
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 16 }}
+      >
+        <motion.div
+          className="big"
+          animate={win ? { y: [0, -14, 0] } : { rotate: [0, -6, 6, 0] }}
+          transition={{ repeat: 2, duration: 0.5 }}
+        >
+          {win ? "🏆" : "💀"}
+        </motion.div>
         <h2 className={win ? "win" : "lose"}>{win ? "BOSS TUMBANG!" : "KALAH..."}</h2>
         <p style={{ color: "var(--dim)" }}>
           {session.stage_title} — benar {final.correct_count}/{final.total} ({score})
         </p>
         <div className="stars">
           {[0, 1, 2].map((k) => (
-            <span
+            <motion.span
               key={k}
+              initial={{ scale: 0, rotate: -40 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.35 + k * 0.22, type: "spring", stiffness: 200, damping: 12 }}
               className={k < stars ? "" : "off"}
               style={k < stars ? undefined : { color: "#3a4066" }}
             >
               ★
-            </span>
+            </motion.span>
           ))}
         </div>
         <div className="xp-gain">
@@ -176,12 +294,17 @@ export function Quiz({
           Skor terbaik stage ini: {Math.max(final.prev_best ?? 0, score)}
         </div>
         {final.new_badges && final.new_badges.length > 0 ? (
-          <p style={{ color: "var(--gold)" }}>
+          <motion.p
+            style={{ color: "var(--gold)" }}
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.5, type: "spring", stiffness: 160, damping: 13 }}
+          >
             🏅 Badge baru:{" "}
             {final.new_badges
               .map((id) => BADGES.find((b) => b.id === id)?.name ?? id)
               .join(", ")}
-          </p>
+          </motion.p>
         ) : null}
         <div className="rbtns">
           <button
@@ -200,7 +323,7 @@ export function Quiz({
             🏆 Leaderboard
           </Link>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -209,6 +332,45 @@ export function Quiz({
     ? (bossHp / session.questions.length) * 100
     : 0;
   const playPct = (playerHp / 3) * 100;
+  const bossEnraged = kind === "battle" && bossHp > 0 && bossPct <= 34;
+
+  const renderFloaters = (side: Floater["side"]) => (
+    <div className="floaters">
+      <AnimatePresence>
+        {floaters
+          .filter((f) => f.side === side)
+          .map((f) => (
+            <motion.div
+              key={f.id}
+              className={`floater ${f.cls}`}
+              initial={{ opacity: 0, y: 6, scale: 0.7 }}
+              animate={{ opacity: 1, y: -44, scale: 1.15 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.85, ease: "easeOut" }}
+            >
+              {f.text}
+            </motion.div>
+          ))}
+      </AnimatePresence>
+    </div>
+  );
+
+  const renderBubble = (who: Bubble["who"]) => (
+    <AnimatePresence>
+      {bubble && bubble.who === who ? (
+        <motion.div
+          key={bubble.id}
+          className="bubble"
+          initial={{ opacity: 0, scale: 0.6, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.7 }}
+          transition={{ type: "spring", stiffness: 260, damping: 18 }}
+        >
+          {bubble.text}
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
 
   const answer = async (i: number) => {
     if (picked !== null) return;
@@ -227,11 +389,56 @@ export function Quiz({
     setResult(r);
     setBossHp(r.total - r.correct_count);
     setPlayerHp(r.player_hp);
+
+    if (kind === "checkpoint") {
+      setCpCorrect(r.correct_count);
+      if (r.correct) {
+        setGuardianPose("pass");
+        addFloater("guardian", "✔ BENAR", "good");
+        if (Math.random() < 0.6) say("guardian", pick(GUARDIAN_OK));
+      } else {
+        setGuardianPose("hit");
+        addFloater("guardian", "✘ SALAH", "bad");
+        if (Math.random() < 0.7) say("guardian", pick(GUARDIAN_NO));
+      }
+      later(() => setGuardianPose("idle"), 600);
+    } else if (r.correct) {
+      setPlayerPose("attack");
+      setBossPose("hit");
+      addFloater("boss", "💥 HIT!", "dmg");
+      if (Math.random() < 0.45) say("boss", pick(BOSS_HURT));
+      else if (Math.random() < 0.35) say("player", pick(PLAYER_GOOD));
+      later(() => {
+        setPlayerPose("idle");
+        setBossPose("idle");
+      }, 600);
+      const remaining = r.total - r.correct_count;
+      if (!r.finished && remaining > 0 && remaining / r.total <= 0.34 && !enragedRef.current) {
+        enragedRef.current = true;
+        later(() => say("boss", BOSS_ENRAGE), 700);
+      }
+    } else {
+      setBossPose("attack");
+      setPlayerPose("hit");
+      addFloater("player", "-1 HP", "dmg");
+      if (Math.random() < 0.55) say("boss", pick(BOSS_TAUNT));
+      later(() => {
+        setBossPose("idle");
+        setPlayerPose("idle");
+      }, 600);
+    }
+
     if (r.correct) sfx.correct(muted);
     else sfx.wrong(muted);
     if (r.finished) {
       if (kind === "battle") {
-        if ((r.score ?? 0) >= 60) sfx.win(muted);
+        const playerWon = (r.score ?? 0) >= 60;
+        later(() => {
+          setBossPose(playerWon ? "dead" : "win");
+          setPlayerPose(playerWon ? "win" : "dead");
+          if (playerWon) say("player", "Menang! 🎉");
+        }, 650);
+        if (playerWon) sfx.win(muted);
         else sfx.lose(muted);
       }
       if (r.new_badges && r.new_badges.length > 0) sfx.badge(muted);
@@ -248,6 +455,7 @@ export function Quiz({
     setQi((v) => v + 1);
     setPicked(null);
     setResult(null);
+    setBubble(null);
   };
 
   return (
@@ -262,64 +470,143 @@ export function Quiz({
           <div className="fighters">
             <div className="fighter you">
               <div className="fname">🧙 KAMU</div>
-              <div className="femoji">🧙</div>
+              <div className="fstage">
+                {renderBubble("player")}
+                {renderFloaters("player")}
+                <motion.div
+                  animate={poseAnimate(playerPose, 1)}
+                  transition={{ duration: 0.55, ease: "easeInOut" }}
+                >
+                  <motion.div
+                    className="femoji"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ repeat: Infinity, duration: 2.1, ease: "easeInOut" }}
+                  >
+                    {playerHp === 1 && playerPose === "idle" ? "😰" : "🧙"}
+                  </motion.div>
+                </motion.div>
+                <div className="fshadow" />
+              </div>
               <div className="fhp">
-                <div style={{ width: `${playPct}%` }}></div>
+                <motion.div
+                  animate={{ width: `${playPct}%` }}
+                  transition={{ type: "spring", stiffness: 90, damping: 20 }}
+                ></motion.div>
               </div>
             </div>
-            <div className="vs">VS</div>
-            <div className="fighter boss">
+            <motion.div
+              className="vs"
+              animate={{ scale: [1, 1.15, 1], rotate: [0, -3, 3, 0] }}
+              transition={{ repeat: Infinity, duration: 1.8 }}
+            >
+              VS
+            </motion.div>
+            <div className={`fighter boss ${bossEnraged ? "enraged" : ""}`}>
               <div className="fname">
                 {session.boss_icon} {session.boss_name}
+                {bossEnraged ? " 🔥" : ""}
               </div>
-              <div className="femoji">{session.boss_icon}</div>
+              <div className="fstage">
+                {renderBubble("boss")}
+                {renderFloaters("boss")}
+                <motion.div
+                  animate={poseAnimate(bossPose, -1)}
+                  transition={{ duration: 0.55, ease: "easeInOut" }}
+                >
+                  <motion.div
+                    className="femoji"
+                    animate={{ y: [0, -8, 0], rotate: [0, -2, 2, 0] }}
+                    transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+                  >
+                    {session.boss_icon}
+                  </motion.div>
+                </motion.div>
+                <div className="fshadow" />
+              </div>
               <div className="fhp">
-                <div style={{ width: `${bossPct}%` }}></div>
+                <motion.div
+                  animate={{ width: `${bossPct}%` }}
+                  transition={{ type: "spring", stiffness: 90, damping: 20 }}
+                ></motion.div>
               </div>
             </div>
           </div>
         ) : (
-          <p className="tagline" style={{ textAlign: "left" }}>
-            🚧 Checkpoint — jawab semua soal ini untuk membuktikan kamu paham.
-            Benar {result ? result.correct_count : 0} sejauh ini.
-          </p>
+          <div className="guardian">
+            <div className="fstage">
+              {renderBubble("guardian")}
+              {renderFloaters("guardian")}
+              <motion.div
+                animate={poseAnimate(guardianPose, 1)}
+                transition={{ duration: 0.55, ease: "easeInOut" }}
+              >
+                <motion.div
+                  className="femoji"
+                  animate={{ y: [0, -5, 0] }}
+                  transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}
+                >
+                  🗿
+                </motion.div>
+              </motion.div>
+              <div className="fshadow" />
+            </div>
+            <p className="tagline" style={{ textAlign: "center", marginTop: 10 }}>
+              🚧 <b>PENJAGA GERBANG</b> — jawab semua soal ini untuk membuktikan kamu
+              paham. Benar {cpCorrect}/{session.questions.length} sejauh ini.
+            </p>
+          </div>
         )}
         <div className="qcard">
-          <div className="qnum">
-            SOAL {qi + 1} / {session.questions.length}
-          </div>
-          <div className="qtext">{q.q}</div>
-          <div id="opts">
-            {q.options.map((o, i) => {
-              let cls = "opt";
-              if (picked !== null && result) {
-                if (i === result.correct_option) cls += " correct";
-                else if (i === picked) cls += " wrong";
-              }
-              return (
-                <button
-                  key={i}
-                  className={cls}
-                  disabled={picked !== null}
-                  onClick={() => void answer(i)}
-                >
-                  <span className="k">{"ABCD"[i]}</span>
-                  {o}
-                </button>
-              );
-            })}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={qi}
+              initial={{ opacity: 0, x: 48 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -48 }}
+              transition={{ duration: 0.24, ease: "easeOut" }}
+            >
+              <div className="qnum">
+                SOAL {qi + 1} / {session.questions.length}
+              </div>
+              <div className="qtext">{q.q}</div>
+              <div id="opts">
+                {q.options.map((o, i) => {
+                  let cls = "opt";
+                  if (picked !== null && result) {
+                    if (i === result.correct_option) cls += " correct";
+                    else if (i === picked) cls += " wrong";
+                  }
+                  return (
+                    <motion.button
+                      key={i}
+                      className={cls}
+                      disabled={picked !== null}
+                      onClick={() => void answer(i)}
+                      whileHover={picked === null ? { scale: 1.02, x: 4 } : undefined}
+                      whileTap={picked === null ? { scale: 0.97 } : undefined}
+                    >
+                      <span className="k">{"ABCD"[i]}</span>
+                      {o}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
           {result ? (
-            <div id="xpl">
+            <motion.div
+              id="xpl"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+            >
               <div className="explain">💡 {result.explanation}</div>
               <div style={{ marginTop: 14, textAlign: "right" }}>
                 <button className="btn" onClick={next}>
-                  {result.finished
-                    ? "LIHAT HASIL 🏁"
-                    : "SOAL BERIKUTNYA →"}
+                  {result.finished ? "LIHAT HASIL 🏁" : "SOAL BERIKUTNYA →"}
                 </button>
               </div>
-            </div>
+            </motion.div>
           ) : null}
         </div>
       </div>

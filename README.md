@@ -16,6 +16,8 @@
 - **Belajar bertahap** — materi dipecah jadi halaman-halaman penjelasan yang bisa di-*next* satu per satu; progres bacaan tersimpan per akun.
 - **Checkpoint** — kuis singkat di akhir penjelasan. Wajib lulus supaya battle stage terbuka.
 - **Battle boss** — 5 soal per stage, 3 HP, opsi jawaban **diacak di server** setiap sesi.
+- **Karakter hidup & animasi Framer Motion** — boss dan pemain bergerak idle, menyerang, terhuyung saat kena hit, angka damage melayang, boss berdialog (dan mengamuk saat HP-nya kritis), ada penjaga gerbang di checkpoint, transisi soal & halaman, bar HP/XP berpegas.
+- **Musik latar ala dungeon** — ambience prosedural WebAudio (drone rendah, angin, nada minor bergaung) yang mulai setelah interaksi pertama; bisa dimatikan kapan saja lewat tombol **Musik** di navigasi, pilihan tersimpan di browser.
 - **XP, level & 7 rank** (Newbie → Mitos), bintang per stage, 6 badge, streak jawaban benar, efek suara WebAudio.
 - **Leaderboard** — peringkat total XP selamanya + kolom XP 7 hari terakhir.
 - **Anti-farming** — XP penuh hanya kalau skor melewati rekor pribadi di stage itu; pengulangan di bawahnya hanya dapat 10% XP.

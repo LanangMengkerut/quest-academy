@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { Hud, TopNav, type ProfileLite } from "@/components/Hud";
+import { MusicEngine } from "@/components/MusicEngine";
 
 export const metadata: Metadata = {
   title: "Quest Academy — Belajar Sambil Main",
@@ -45,6 +46,7 @@ export default async function RootLayout({
         />
       </head>
       <body>
+        <MusicEngine />
         <div id="app">
           {profile ? <Hud profile={profile} /> : null}
           <TopNav loggedIn={!!user} />

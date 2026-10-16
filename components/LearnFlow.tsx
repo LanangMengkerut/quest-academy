@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useSound } from "@/lib/useSound";
 import { sfx } from "@/lib/sfx";
@@ -29,6 +30,7 @@ export function LearnFlow({
   const [sound] = useSound();
   const muted = !sound;
   const [idx, setIdx] = useState(0);
+  const [dir, setDir] = useState(1);
   const [showCheckpoint, setShowCheckpoint] = useState(false);
   const [read, setRead] = useState<Set<string>>(new Set(readSectionIds));
   const markedRef = useRef<Set<string>>(new Set(readSectionIds));
@@ -70,22 +72,35 @@ export function LearnFlow({
       </div>
       <div className="questlog">
         <h2>📜 PENJELASAN — {stageTitle.toUpperCase()}</h2>
-        <div className="qsub">
-          {section ? section.title : "Tidak ada penjelasan"}
-        </div>
-        {section ? (
-          <div
-            className="body sectbody"
-            dangerouslySetInnerHTML={{ __html: section.body }}
-          />
-        ) : (
-          <div className="body">
-            <p>Penjelasan bertahap untuk stage ini belum tersedia.</p>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, x: 56 * dir }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -56 * dir }}
+            transition={{ duration: 0.26, ease: "easeOut" }}
+          >
+            <div className="qsub">
+              {section ? section.title : "Tidak ada penjelasan"}
+            </div>
+            {section ? (
+              <div
+                className="body sectbody"
+                dangerouslySetInnerHTML={{ __html: section.body }}
+              />
+            ) : (
+              <div className="body">
+                <p>Penjelasan bertahap untuk stage ini belum tersedia.</p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
       <div className="pbar thin">
-        <div style={{ width: `${pct}%` }}></div>
+        <motion.div
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "spring", stiffness: 70, damping: 20 }}
+        ></motion.div>
       </div>
       <div className="pager">
         <button
@@ -93,6 +108,7 @@ export function LearnFlow({
           disabled={idx === 0}
           onClick={() => {
             sfx.click(muted);
+            setDir(-1);
             setIdx((v) => Math.max(0, v - 1));
           }}
         >
@@ -106,6 +122,7 @@ export function LearnFlow({
             className="btn gold"
             onClick={() => {
               sfx.click(muted);
+              setDir(1);
               setIdx((v) => Math.min(total - 1, v + 1));
             }}
           >

@@ -317,3 +317,51 @@ table.lb .rk { font-family: var(--font-pixel); font-size: 11px; color: var(--cya
 .sectbody pre { overflow-x: auto; background: #05070f; padding: 12px; border-radius: 10px; }
 
 .srcbtn { display: inline-flex; gap: 8px; align-items: center; }
+
+/* ============ living characters & arena (framer-motion) ============ */
+.arena {
+  background:
+    radial-gradient(240px 120px at 12% -10px, #fb923c33, transparent 70%),
+    radial-gradient(240px 120px at 88% -10px, #fb923c33, transparent 70%),
+    var(--panel);
+}
+.fstage { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 34px; }
+.fighter .femoji { font-size: 64px; line-height: 1.15; }
+.guardian .femoji { font-size: 60px; line-height: 1.15; }
+.fshadow {
+  width: 74px; height: 14px; border-radius: 50%;
+  background: radial-gradient(ellipse at center, #000a 0%, transparent 70%);
+  margin-top: 2px;
+}
+.bubble {
+  position: absolute; top: -6px; left: 0; right: 0; margin-inline: auto;
+  width: max-content; max-width: 260px; text-align: center;
+  background: #f4f6ff; color: #141830; font-size: 13px; font-weight: 600;
+  padding: 7px 11px; border-radius: 10px; border: 2px solid #141830;
+  z-index: 5; box-shadow: 3px 3px 0 #0006;
+}
+.bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -7px;
+  transform: translateX(-50%);
+  border: 7px solid transparent; border-top-color: #f4f6ff; border-bottom: 0;
+}
+.floaters {
+  position: absolute; top: 26px; left: 0; right: 0; height: 0;
+  display: flex; justify-content: center; z-index: 6; pointer-events: none;
+}
+.floater {
+  position: absolute; font-family: var(--font-pixel); font-size: 13px;
+  text-shadow: 2px 2px 0 #000;
+}
+.floater.dmg { color: var(--red); }
+.floater.good { color: var(--green); }
+.floater.bad { color: var(--red); }
+.fighter.enraged .femoji {
+  filter: drop-shadow(0 0 14px #f87171cc);
+  animation: enragePulse 0.7s ease-in-out infinite;
+}
+@keyframes enragePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+.guardian { text-align: center; padding-top: 6px; }
