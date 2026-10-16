@@ -4,7 +4,7 @@
 
 - 🌐 **Live:** https://belajar.antekashing.my.id
 - 🪞 Cadangan: https://quest-academy-beta.vercel.app
-- 📦 Repo: https://github.com/LanangMengkerut/quest-academy (privat — minta akses ke owner kalau belum dapat)
+- 📦 Repo: https://github.com/LanangMengkerut/quest-academy (publik)
 
 > Ini adalah rebuild dinamis dari web statis Quest Academy lama. Dulu progres hanya tersimpan di `localStorage` browser dan kunci jawaban bisa diintip dari file JSON. Sekarang semuanya server-side: akun, progres tersinkron, dan kunci jawaban tidak pernah dikirim ke browser.
 
@@ -157,7 +157,7 @@ Sesudah itu kolaborator tidak memerlukan akun Supabase sama sekali: cukup akses 
 
 ## 🤝 Panduan kolaborator
 
-- Repo ini privat; yang bisa mengakses hanya yang diundang owner.
+- Repo ini publik untuk dibaca siapa saja, tetapi hak kolaborator (push branch & PR dari dalam repo) hanya untuk yang diundang owner.
 - **Kolaborator cukup punya akun GitHub.** Tidak perlu akun Supabase, tidak perlu tahu token siapa pun — perubahan database berjalan lewat repo ini dan GitHub Actions (lihat bagian Deploy).
 - Baru bergabung dan memakai agen AI (Muse)? Salin **prompt siap pakai** di [docs/PROMPT-KOLABORATOR.md](docs/PROMPT-KOLABORATOR.md) sebagai pesan pertama ke agenmu — isinya konteks proyek, aturan akses, dan langkah setup.
 - Kerjakan perubahan di branch sendiri lalu buat Pull Request ke `main` — jangan push langsung ke `main`.
