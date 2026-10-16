@@ -16,6 +16,7 @@
 - **Belajar bertahap** — materi dipecah jadi halaman-halaman penjelasan yang bisa di-*next* satu per satu; progres bacaan tersimpan per akun.
 - **Checkpoint** — kuis singkat di akhir penjelasan. Wajib lulus supaya battle stage terbuka.
 - **Battle boss** — 5 soal per stage, 3 HP, opsi jawaban **diacak di server** setiap sesi.
+- **Mode Fokus (anti-AI)** — battle & Arena berjalan dalam mode fokus: fullscreen otomatis bila browser mendukung, pindah tab/aplikasi atau split-screen terdeteksi (tenggang ±2 detik), sesi dijeda per pelanggaran, dan 3× pelanggaran menghentikan sesi (Arena: dianggap menyerah). Berlaku di HP maupun PC; checkpoint tidak memakai mode ini. Penegakannya di sisi klien (`lib/useExamGuard.ts`) — penegak norma main bersih, bukan proctoring ujian.
 - **Karakter hidup & animasi Framer Motion** — boss dan pemain bergerak idle, menyerang, terhuyung saat kena hit, angka damage melayang, boss berdialog (dan mengamuk saat HP-nya kritis), ada penjaga gerbang di checkpoint, transisi soal & halaman, bar HP/XP berpegas.
 - **Musik latar ala dungeon** — ambience prosedural WebAudio (drone rendah, angin, nada minor bergaung) yang mulai setelah interaksi pertama; bisa dimatikan kapan saja lewat tombol **Musik** di navigasi, pilihan tersimpan di browser.
 - **XP, level & 7 rank** (Newbie → Mitos), bintang per stage, 6 badge, streak jawaban benar, efek suara WebAudio.
