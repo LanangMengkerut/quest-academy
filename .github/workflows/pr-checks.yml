@@ -1,0 +1,101 @@
+name: PR Checks & Auto-Merge
+
+# Every PR to main is checked automatically:
+#   1. npm build (TypeScript / Next.js must compile)
+#   2. scripts/pr_checks.py — PostgreSQL syntax + idempotency of every
+#      supabase/*.sql, plus a secret scan
+# If everything is green, the PR is merged automatically ("auto acc").
+# Exceptions — these are NEVER auto-merged and wait for a human:
+#   - draft PRs, PRs from forks, PRs labeled "no-auto-merge"
+#   - PRs that touch .github/ (a PR must not be able to weaken its own checks)
+# After merging, SQL changes are applied right away in this workflow
+# (merges made by GITHUB_TOKEN do not trigger the push-based
+# supabase-deploy workflow, so this step replaces it for PR merges).
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  checks-and-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Evaluate auto-merge guards
+        id: guard
+        run: |
+          BLOCK=0
+          FILES=$(gh pr view "$PR_NUMBER" --json files --jq '.files[].path')
+          echo "$FILES"
+          if echo "$FILES" | grep -q '^\.github/'; then
+            echo "PR touches .github/ — auto-merge disabled, human review required."
+            BLOCK=1
+          fi
+          LABELS=$(gh pr view "$PR_NUMBER" --json labels --jq '.labels[].name')
+          if echo "$LABELS" | grep -qx 'no-auto-merge'; then
+            echo "Label no-auto-merge present — auto-merge disabled."
+            BLOCK=1
+          fi
+          if echo "$FILES" | grep -q '^supabase/.*\.sql$'; then
+            echo "touches_sql=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "touches_sql=0" >> "$GITHUB_OUTPUT"
+          fi
+          echo "block=$BLOCK" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (TypeScript / Next.js)
+        run: npm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: SQL + secret checks
+        run: |
+          pip install pglast
+          python3 scripts/pr_checks.py
+
+      - name: Auto-merge (only when all checks passed and no guard blocks)
+        if: steps.guard.outputs.block == '0'
+        run: gh pr merge "$PR_NUMBER" --merge
+
+      - name: Apply SQL to Supabase (PR merges only)
+        if: steps.guard.outputs.touches_sql == '1'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: vrdgbppcmstlxgdbuyen
+        run: |
+          git fetch origin main
+          git checkout main
+          python3 scripts/apply_supabase_sql.py
