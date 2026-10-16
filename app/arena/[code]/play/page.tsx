@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useExamGuard, exitFullscreen, MAX_VIOLATIONS } from "@/lib/useExamGuard";
+import { ExamOverlay } from "@/components/ExamOverlay";
 
 type Fighter = {
   id: string;
@@ -44,7 +46,28 @@ export default function ArenaBattle() {
   const [hitMe, setHitMe] = useState(false);
   const [hitOpp, setHitOpp] = useState(false);
   const [err, setErr] = useState("");
+  const [dq, setDq] = useState(false);
   const hpRef = useRef({ me: 100, opp: 100 });
+
+  const handleDq = useCallback(async () => {
+    setDq(true);
+    if (roomId) {
+      const supabase = createClient();
+      await supabase.rpc("arena_leave", { p_room_id: roomId });
+    }
+  }, [roomId]);
+
+  // Mode Fokus: active only while a question is in front of the player.
+  const exam = useExamGuard({
+    active: !!roomId && !result && !dq && q !== null,
+    onTerminate: () => {
+      void handleDq();
+    },
+  });
+
+  useEffect(() => {
+    if (result || dq) exitFullscreen();
+  }, [result, dq]);
 
   const fetchFighters = useCallback(
     async (rid: string, myId: string) => {
@@ -245,7 +268,8 @@ export default function ArenaBattle() {
   }, [roomId, fetchFighters, resolveResult]);
 
   const answer = async (idx: number) => {
-    if (busy || picked !== null || !roomId || result) return;
+    if (busy || picked !== null || !roomId || result || dq) return;
+    if (!exam.engaged || exam.covered) return; // Mode Fokus gate/pause
     setBusy(true);
     setPicked(idx);
     const supabase = createClient();
@@ -285,8 +309,6 @@ export default function ArenaBattle() {
       correctOption: d.correct_option,
       explanation: d.explanation,
     });
-    // Baca ulang dari DB sebagai konfirmasi (jaga-jaga kalau realtime tersendat)
-    if (me) fetchFighters(roomId, me.id);
     if (d.game_over && d.result) {
       setTimeout(() => setResult(d.result), 1800);
     } else {
@@ -313,6 +335,39 @@ export default function ArenaBattle() {
     });
     if (!error && data) router.push(`/arena/${(data as { code: string }).code}`);
   };
+
+  if (dq) {
+    return (
+      <div className="lbwrap">
+        <div className="arena-result">
+          <div className="big">💀</div>
+          <h2 style={{ color: "var(--red)" }}>DIDISKUALIFIKASI</h2>
+          <p>
+            Kamu melakukan {MAX_VIOLATIONS}× pelanggaran Mode Fokus (pindah
+            tab/aplikasi, keluar fullscreen, atau membagi layar), jadi
+            pertandingan ini dianggap menyerah dan lawan dinyatakan menang.
+            Main bersih ya — tanpa bantuan AI. 🛡️
+          </p>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              justifyContent: "center",
+              marginTop: 24,
+              flexWrap: "wrap",
+            }}
+          >
+            <Link href="/arena" className="btn ghost">
+              Kembali ke Arena
+            </Link>
+            <Link href="/arena/leaderboard" className="btn ghost">
+              🏆 Leaderboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (result) {
     const conf =
@@ -354,8 +409,39 @@ export default function ArenaBattle() {
     );
   }
 
+  const matchLive = !!roomId && !result && !dq && (q !== null || waitingOpp);
+
   return (
     <div className="lbwrap">
+      {matchLive && !exam.engaged ? (
+        <div className="exam-overlay">
+          <div className="exam-box">
+            <div className="big">🛡️</div>
+            <h2>MODE FOKUS ARENA</h2>
+            <p style={{ color: "var(--dim)" }}>
+              Pertandingan ini memakai Mode Fokus anti-AI: layar jadi
+              fullscreen (bila didukung), dan kamu tidak boleh pindah
+              tab/aplikasi, keluar fullscreen, atau membagi layar selama
+              bertarung. Keluar di bawah ±2 detik dimaafkan; pelanggaran
+              ke-{MAX_VIOLATIONS} = didiskualifikasi dan dianggap menyerah.
+            </p>
+            <div className="rbtns">
+              <button
+                className="btn gold"
+                onClick={() => void exam.engage()}
+              >
+                ⚔️ Masuk Mode Fokus &amp; Bertarung
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <ExamOverlay
+        covered={exam.covered}
+        paused={exam.paused}
+        violations={exam.violations}
+        onResume={() => void exam.resume()}
+      />
       <div className="fighters">
         <div className="fighter you">
           <div className="fname">
@@ -384,6 +470,16 @@ export default function ArenaBattle() {
         </div>
       </div>
 
+      {exam.engaged ? (
+        <div style={{ textAlign: "center", marginTop: 10 }}>
+          <span
+            className={`exam-chip${exam.violations >= MAX_VIOLATIONS - 1 ? " warn" : ""}`}
+          >
+            🛡️ Mode Fokus — pelanggaran {exam.violations}/{MAX_VIOLATIONS}
+          </span>
+        </div>
+      ) : null}
+
       {err && <p className="err">⚠️ {err}</p>}
 
       {waitingOpp ? (
@@ -392,7 +488,12 @@ export default function ArenaBattle() {
           Deck soalmu habis. Menunggu lawan menyelesaikan soalnya…
         </div>
       ) : q ? (
-        <div className="qcard">
+        <div
+          className="qcard"
+          style={{ userSelect: "none" }}
+          onContextMenu={(e) => e.preventDefault()}
+          onCopy={(e) => e.preventDefault()}
+        >
           <div className="qnum">
             SOAL {q.answered + 1} / {q.total} — benar = −10 HP lawan
           </div>

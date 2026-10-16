@@ -389,3 +389,25 @@ table.lb .rk { font-family: var(--font-pixel); font-size: 11px; color: var(--cya
 .arena-result h2 { font-family: var(--font-pixel); font-size: 20px; margin: 0 0 8px; }
 .arena-result p { color: var(--dim); }
 .err { color: var(--red); font-size: 14px; margin-top: 12px; }
+
+/* Mode Fokus (anti-AI guard): cover + engage gate */
+.exam-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(5, 7, 18, 0.95);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.exam-box {
+  max-width: 520px; width: 100%; text-align: center;
+  background: var(--panel); border: 3px solid var(--line); border-radius: 14px;
+  padding: 30px 24px;
+}
+.exam-box .big { font-size: 56px; margin-bottom: 8px; }
+.exam-box h2 { font-family: var(--font-pixel); font-size: 16px; margin-bottom: 12px; color: var(--gold); line-height: 1.7; }
+.exam-box .rbtns { display: flex; gap: 12px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+.exam-chip {
+  display: inline-block; font-size: 12px; color: var(--dim);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+  background: var(--panel);
+}
+.exam-chip.warn { color: var(--red); border-color: var(--red); }

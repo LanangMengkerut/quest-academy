@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { useExamGuard, exitFullscreen, MAX_VIOLATIONS } from "@/lib/useExamGuard";
+import { ExamOverlay } from "@/components/ExamOverlay";
 import { useSound } from "@/lib/useSound";
 import { sfx } from "@/lib/sfx";
 import { BADGES, starsForScore } from "@/lib/game";
@@ -101,10 +103,22 @@ export function Quiz({
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [bubble, setBubble] = useState<Bubble | null>(null);
   const [cpCorrect, setCpCorrect] = useState(0);
+  const [begun, setBegun] = useState(false);
+  const [dq, setDq] = useState(false);
   const startedRef = useRef(false);
   const timersRef = useRef<number[]>([]);
   const fxIdRef = useRef(0);
   const enragedRef = useRef(false);
+
+  // Mode Fokus: battle only, checkpoint is never guarded.
+  const exam = useExamGuard({
+    active: kind === "battle" && begun && !!session && !final && !dq,
+    onTerminate: () => setDq(true),
+  });
+
+  useEffect(() => {
+    if (final || dq) exitFullscreen();
+  }, [final, dq]);
 
   const later = useCallback((fn: () => void, ms: number) => {
     const id = window.setTimeout(fn, ms);
@@ -165,10 +179,18 @@ export function Quiz({
   }, [stageId, kind, later, say]);
 
   useEffect(() => {
+    if (kind !== "checkpoint") return; // battle starts from the Mode Fokus gate
     if (startedRef.current) return;
     startedRef.current = true;
     void start();
-  }, [start]);
+  }, [start, kind]);
+
+  const beginBattle = () => {
+    sfx.click(muted);
+    setBegun(true);
+    void exam.engage();
+    void start();
+  };
 
   if (error) {
     return (
@@ -184,6 +206,54 @@ export function Quiz({
     );
   }
 
+  if (kind === "battle" && !begun) {
+    return (
+      <div>
+        <div className="crumb">
+          <Link href={`/course/${courseId}/stage/${stageId}`}>
+            ← Kembali ke stage
+          </Link>
+        </div>
+        <div className="exam-box" style={{ margin: "0 auto" }}>
+          <div className="big">🛡️</div>
+          <h2>MODE FOKUS</h2>
+          <p style={{ color: "var(--dim)" }}>
+            Battle dimainkan dalam Mode Fokus anti-AI, biar leaderboard adil
+            buat semua:
+          </p>
+          <ul
+            style={{
+              textAlign: "left",
+              color: "var(--dim)",
+              lineHeight: 1.9,
+              fontSize: 14,
+              paddingLeft: 20,
+            }}
+          >
+            <li>Layar jadi fullscreen otomatis (bila browser mendukung).</li>
+            <li>
+              Jangan pindah tab/aplikasi, keluar fullscreen, atau membagi
+              layar (split-screen) selama battle.
+            </li>
+            <li>
+              Keluar di bawah ±2 detik dimaafkan; lebih dari itu dihitung
+              pelanggaran dan sesi dijeda.
+            </li>
+            <li>
+              {MAX_VIOLATIONS}× pelanggaran = sesi dihentikan tanpa XP.
+            </li>
+            <li>Boleh main di HP maupun PC. Checkpoint tidak memakai mode ini.</li>
+          </ul>
+          <div className="rbtns">
+            <button className="btn gold" onClick={beginBattle}>
+              ⚔️ MULAI BATTLE
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <div className="empty">
@@ -195,6 +265,40 @@ export function Quiz({
           ⏳
         </motion.div>
         Menyiapkan {kind === "battle" ? "battle" : "checkpoint"}...
+      </div>
+    );
+  }
+
+  if (dq) {
+    return (
+      <div className="result">
+        <div className="big">💀</div>
+        <h2 className="lose">SESI DIHENTIKAN</h2>
+        <p style={{ color: "var(--dim)" }}>
+          Kamu melakukan {MAX_VIOLATIONS}× pelanggaran Mode Fokus, jadi
+          battle ini dihentikan dan tidak menghasilkan XP. Main bersih ya —
+          tanpa bantuan AI. 🛡️
+        </p>
+        <div className="rbtns">
+          <button
+            className="btn gold"
+            onClick={() => {
+              sfx.click(muted);
+              setDq(false);
+              setSession(null);
+              setBegun(false);
+              exam.reset();
+            }}
+          >
+            ⚔️ COBA LAGI
+          </button>
+          <Link
+            className="btn ghost"
+            href={`/course/${courseId}/stage/${stageId}`}
+          >
+            ← Kembali ke stage
+          </Link>
+        </div>
       </div>
     );
   }
@@ -311,6 +415,7 @@ export function Quiz({
             className="btn gold"
             onClick={() => {
               sfx.click(muted);
+              void exam.restart();
               void start();
             }}
           >
@@ -373,6 +478,7 @@ export function Quiz({
   );
 
   const answer = async (i: number) => {
+    if (kind === "battle" && exam.covered) return; // Mode Fokus pause blocks answers
     if (picked !== null) return;
     setPicked(i);
     const supabase = createClient();
@@ -459,12 +565,24 @@ export function Quiz({
   };
 
   return (
-    <div>
+    <div
+      onContextMenu={kind === "battle" ? (e) => e.preventDefault() : undefined}
+      onCopy={kind === "battle" ? (e) => e.preventDefault() : undefined}
+    >
       <div className="crumb">
         <Link href={`/course/${courseId}/stage/${stageId}`}>
           ← Menyerah &amp; kembali
         </Link>
       </div>
+      {kind === "battle" ? (
+        <div style={{ marginBottom: 10 }}>
+          <span
+            className={`exam-chip${exam.violations >= MAX_VIOLATIONS - 1 ? " warn" : ""}`}
+          >
+            🛡️ Mode Fokus — pelanggaran {exam.violations}/{MAX_VIOLATIONS}
+          </span>
+        </div>
+      ) : null}
       <div className="arena" style={{ position: "relative" }}>
         {kind === "battle" ? (
           <div className="fighters">
@@ -556,7 +674,10 @@ export function Quiz({
             </p>
           </div>
         )}
-        <div className="qcard">
+        <div
+          className="qcard"
+          style={kind === "battle" ? { userSelect: "none" } : undefined}
+        >
           <AnimatePresence>
             <motion.div
               key={qi}
@@ -612,6 +733,14 @@ export function Quiz({
           ) : null}
         </div>
       </div>
+      {kind === "battle" ? (
+        <ExamOverlay
+          covered={exam.covered}
+          paused={exam.paused}
+          violations={exam.violations}
+          onResume={() => void exam.resume()}
+        />
+      ) : null}
     </div>
   );
 }
