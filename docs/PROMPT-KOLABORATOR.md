@@ -16,7 +16,8 @@ lingkungan kerja dan memahami proyek ini sebelum mengubah apa pun.
 
 FAKTA PROYEK
 - Live: https://belajar.antekashing.my.id
-- Repo (privat): https://github.com/LanangMengkerut/quest-academy
+- Repo (publik untuk dibaca; hak kolaborator tetap undangan owner):
+  https://github.com/LanangMengkerut/quest-academy
 - Stack: Next.js 15 (App Router) + TypeScript di Vercel; backend Supabase
   (PostgreSQL + Auth + RLS + Realtime).
 - main = PRODUKSI. Setiap merge ke main langsung men-deploy aplikasi ke
