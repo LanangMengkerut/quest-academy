@@ -86,6 +86,10 @@ lib/
 supabase/
   schema.sql            Skema lengkap: tabel, RLS, view statistik, RPC mesin kuis
   seed-*.sql            Konten: course, stage, sections, soal (dibangkitkan dari sumber)
+scripts/
+  apply_supabase_sql.py Menjalankan semua SQL di supabase/ ke project (dipakai CI)
+.github/workflows/
+  supabase-deploy.yml   GitHub Actions: terapkan SQL otomatis setiap merge ke main
 middleware.ts           Refresh sesi Supabase
 ```
 
@@ -132,25 +136,38 @@ Konten sepenuhnya database-driven — tidak perlu mengubah kode:
 1. Siapkan sumbernya (PDF / halaman web materi).
 2. Pecah jadi: **intisari** (HTML), **sections** (satu baris per halaman penjelasan), **soal checkpoint** (±3) dan **soal battle** (5) — formatnya meniru file `supabase/seed-*.sql` yang sudah ada.
 3. Konvensi ID: stage `jarkom-p8`, `ib-m8`, `pemweb-x1`; section `<stage>-s1`, `s2`, …; soal `<stage>-c1..` (checkpoint) dan `<stage>-b1..` (battle).
-4. Terapkan file seed-nya ke database (SQL Editor / Management API). Urutan opsi di file boleh apa adanya — pengacakan terjadi di server saat sesi dibuat.
+4. Masukkan file seed-nya ke folder `supabase/`, buat PR, dan merge ke `main`. GitHub Actions akan menerapkannya ke database secara otomatis (lihat bagian Deploy). Urutan opsi di file boleh apa adanya — pengacakan terjadi di server saat sesi dibuat.
 5. Stage langsung muncul di web. Selesai.
 
 ## 🚢 Deploy
 
-- Hosting di **Vercel** (project `quest-academy`), env yang dibutuhkan hanya dua variabel `NEXT_PUBLIC_SUPABASE_*` di atas.
+- Hosting aplikasi di **Vercel** (project `quest-academy`), env yang dibutuhkan hanya dua variabel `NEXT_PUBLIC_SUPABASE_*` di atas.
 - Domain produksi: **belajar.antekashing.my.id** (CNAME di Cloudflare → `cname.vercel-dns.com`, status *DNS only*).
-- ⚠️ Status saat ini: project Vercel **belum terhubung Git**, jadi push ke GitHub **belum** otomatis men-deploy. Untuk mengaktifkan auto-deploy: Vercel Dashboard → Project → Settings → Git → Connect ke repo ini. Selama belum terhubung, deploy dilakukan manual dari dashboard/upload file.
+- **Database otomatis:** setiap push ke `main` yang mengubah folder `supabase/` memicu workflow **Deploy Supabase SQL** (GitHub Actions) yang menjalankan ulang `schema.sql` + semua `seed-*.sql` ke project Supabase. Semua file SQL ditulis idempotent, jadi aman dijalankan berulang. Workflow juga bisa dijalankan manual dari tab **Actions → Deploy Supabase SQL → Run workflow**.
+- ⚠️ Status saat ini: project Vercel **belum terhubung Git**, jadi push ke GitHub **belum** otomatis men-deploy *aplikasinya*. Untuk mengaktifkan auto-deploy aplikasi: Vercel Dashboard → Project → Settings → Git → Connect ke repo ini. Selama belum terhubung, deploy aplikasi dilakukan manual dari dashboard/upload file.
+
+### Pengaturan sekali jalan oleh owner repo (untuk workflow database)
+
+Workflow database membutuhkan Personal Access Token Supabase **milik owner**, disimpan sebagai secret repo — bukan dibagikan ke siapa pun:
+
+1. Ambil token di Supabase: **Account → Access Tokens** (token yang sama dengan yang dipakai owner; jangan kirim lewat chat/issue).
+2. Di GitHub: repo **Settings → Secrets and variables → Actions → New repository secret**.
+3. Name: `SUPABASE_ACCESS_TOKEN` — Value: tempel tokennya. Simpan.
+
+Sesudah itu kolaborator tidak memerlukan akun Supabase sama sekali: cukup akses GitHub.
 
 ## 🤝 Panduan kolaborator
 
 - Repo ini privat; yang bisa mengakses hanya yang diundang owner.
+- **Kolaborator cukup punya akun GitHub.** Tidak perlu akun Supabase, tidak perlu tahu token siapa pun — perubahan database berjalan lewat repo ini dan GitHub Actions (lihat bagian Deploy).
 - Kerjakan perubahan di branch sendiri lalu buat Pull Request ke `main` — jangan push langsung ke `main`.
 - **Jangan pernah commit** `.env.local`, kunci `service_role`, token, atau kredensial apa pun. `.env.example` hanya berisi nama variabel + URL publik.
-- Perubahan skema database ditulis sebagai SQL baru di folder `supabase/` dan disebutkan di PR (skema diterapkan manual, belum ada migration otomatis).
+- Perubahan skema/konten database ditulis sebagai file SQL di folder `supabase/` dan disebutkan di PR; setelah merge, GitHub Actions menerapkannya otomatis. File SQL wajib idempotent (pakai `IF NOT EXISTS` / `ON CONFLICT DO UPDATE` seperti file yang sudah ada).
 - Soal dan materi baru mengikuti alur "Menambah materi" di atas — tidak lewat kode.
 
 ## 🗺️ Roadmap
 
+- [x] Deploy database otomatis via GitHub Actions (kolaborator cukup lewat GitHub)
 - [ ] Materi Pemrograman Web (menunggu sumber)
 - [ ] Auto-deploy GitHub → Vercel
 - [ ] Kode pemulihan akun saat registrasi (antisipasi lupa password)
