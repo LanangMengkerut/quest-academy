@@ -74,6 +74,7 @@ export function TopNav({ loggedIn }: { loggedIn: boolean }) {
     <nav className="topnav">
       <Link href="/">🏠 Beranda</Link>
       <Link href="/leaderboard">🏆 Leaderboard</Link>
+      <Link href="/arena">⚔️ Arena</Link>
       <button
         className="linkbtn"
         onClick={toggleMusic}
