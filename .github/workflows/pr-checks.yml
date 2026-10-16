@@ -37,9 +37,11 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout PR
+        # Default for pull_request events = the merge commit (base + head),
+        # so checks see scripts/pr_checks.py from main even for branches
+        # created before it existed, and the build tests the merged result.
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
       - name: Evaluate auto-merge guards
