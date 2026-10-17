@@ -468,7 +468,7 @@ export default function ArenaBattle() {
               rows={3}
               row={atkMe ? 1 : 0}
               frameAspect="480/426"
-              size={104}
+              size={128}
               speed={atkMe ? 0.45 : 0.9}
             />
           </div>
@@ -488,7 +488,7 @@ export default function ArenaBattle() {
               rows={3}
               row={atkOpp ? 1 : 0}
               frameAspect="480/426"
-              size={104}
+              size={128}
               flip
               speed={atkOpp ? 0.45 : 0.9}
             />

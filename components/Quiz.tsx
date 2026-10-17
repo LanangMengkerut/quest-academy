@@ -642,7 +642,7 @@ export function Quiz({
                     rows={3}
                     row={playerPose === "attack" ? 1 : 0}
                     frameAspect="480/426"
-                    size={104}
+                    size={128}
                     speed={playerPose === "attack" ? 0.45 : 0.9}
                   />
                 </motion.div>
@@ -680,7 +680,7 @@ export function Quiz({
                       rows={1}
                       row={0}
                       frameAspect={bossSprite.aspect}
-                      size={120}
+                      size={148}
                       flip
                     />
                   ) : (
