@@ -638,11 +638,12 @@ export function Quiz({
                   transition={{ duration: 0.55, ease: "easeInOut" }}
                 >
                   <Sprite
+                    key={playerPose === "attack" ? "atk" : "idle"}
                     src={CHAR_SPRITES[avatar] ?? CHAR_SPRITES.wizard}
                     rows={3}
                     row={playerPose === "attack" ? 1 : 0}
                     frameAspect="480/426"
-                    size={128}
+                    size={144}
                     speed={playerPose === "attack" ? 0.45 : 0.9}
                   />
                 </motion.div>
@@ -680,7 +681,7 @@ export function Quiz({
                       rows={1}
                       row={0}
                       frameAspect={bossSprite.aspect}
-                      size={148}
+                      size={168}
                       flip
                     />
                   ) : (

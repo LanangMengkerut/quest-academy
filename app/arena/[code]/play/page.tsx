@@ -464,11 +464,12 @@ export default function ArenaBattle() {
           </div>
           <div className={hitMe ? "fhit" : undefined}>
             <Sprite
+              key={atkMe ? "atk" : "idle"}
               src={CHAR_SPRITES[me?.avatar ?? ""] ?? CHAR_SPRITES.wizard}
               rows={3}
               row={atkMe ? 1 : 0}
               frameAspect="480/426"
-              size={128}
+              size={144}
               speed={atkMe ? 0.45 : 0.9}
             />
           </div>
@@ -484,11 +485,12 @@ export default function ArenaBattle() {
           </div>
           <div className={hitOpp ? "fhit" : undefined}>
             <Sprite
+              key={atkOpp ? "atk" : "idle"}
               src={CHAR_SPRITES[opp?.avatar ?? ""] ?? CHAR_SPRITES.wizard}
               rows={3}
               row={atkOpp ? 1 : 0}
               frameAspect="480/426"
-              size={128}
+              size={144}
               flip
               speed={atkOpp ? 0.45 : 0.9}
             />
