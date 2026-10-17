@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useExamGuard, exitFullscreen, MAX_VIOLATIONS } from "@/lib/useExamGuard";
 import { ExamOverlay } from "@/components/ExamOverlay";
+import { Sprite, CHAR_SPRITES } from "@/components/Sprite";
+import { Avatar } from "@/components/Avatar";
 
 type Fighter = {
   id: string;
@@ -45,6 +47,8 @@ export default function ArenaBattle() {
   const [myAnswered, setMyAnswered] = useState(0);
   const [hitMe, setHitMe] = useState(false);
   const [hitOpp, setHitOpp] = useState(false);
+  const [atkMe, setAtkMe] = useState(false);
+  const [atkOpp, setAtkOpp] = useState(false);
   const [err, setErr] = useState("");
   const [dq, setDq] = useState(false);
   const hpRef = useRef({ me: 100, opp: 100 });
@@ -109,6 +113,9 @@ export default function ArenaBattle() {
           if (p.hp < hpRef.current.me) {
             setHitMe(true);
             setTimeout(() => setHitMe(false), 450);
+            // Lawan menyerang.
+            setAtkOpp(true);
+            setTimeout(() => setAtkOpp(false), 500);
           }
           hpRef.current.me = p.hp;
           setMe(f);
@@ -295,6 +302,10 @@ export default function ArenaBattle() {
       result: "win" | "lose" | "draw" | null;
     };
     // animasi serangan langsung dari respons (lebih cepat dari realtime)
+    if (d.correct) {
+      setAtkMe(true);
+      setTimeout(() => setAtkMe(false), 500);
+    }
     if (d.correct && d.opp_hp < hpRef.current.opp) {
       setHitOpp(true);
       setTimeout(() => setHitOpp(false), 450);
@@ -444,29 +455,44 @@ export default function ArenaBattle() {
       />
       <div className="fighters">
         <div className="fighter you">
-          <div className="fname">
-            {me?.avatar} {me?.username ?? "…"}
-          </div>
+          <div className="fname">{me?.username ?? "…"} (kamu)</div>
           <div className="fhp">
             <div style={{ width: `${me?.hp ?? 100}%` }} />
           </div>
           <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 4 }}>
             HP {me?.hp ?? 100}
           </div>
-          <div className={`femoji${hitMe ? " hit" : ""}`}>{me?.avatar ?? "🧙"}</div>
+          <div className={hitMe ? "fhit" : undefined}>
+            <Sprite
+              src={CHAR_SPRITES[me?.avatar ?? ""] ?? CHAR_SPRITES.wizard}
+              rows={3}
+              row={atkMe ? 1 : 0}
+              frameAspect="480/426"
+              size={104}
+              speed={atkMe ? 0.45 : 0.9}
+            />
+          </div>
         </div>
         <div className="vs">VS</div>
         <div className="fighter foe">
-          <div className="fname">
-            {opp?.avatar} {opp?.username ?? "…"}
-          </div>
+          <div className="fname">{opp?.username ?? "…"}</div>
           <div className="fhp">
             <div style={{ width: `${opp?.hp ?? 100}%` }} />
           </div>
           <div style={{ fontSize: 12, color: "var(--dim)", marginTop: 4 }}>
             HP {opp?.hp ?? 100}
           </div>
-          <div className={`femoji${hitOpp ? " hit" : ""}`}>{opp?.avatar ?? "🧙"}</div>
+          <div className={hitOpp ? "fhit" : undefined}>
+            <Sprite
+              src={CHAR_SPRITES[opp?.avatar ?? ""] ?? CHAR_SPRITES.wizard}
+              rows={3}
+              row={atkOpp ? 1 : 0}
+              frameAspect="480/426"
+              size={104}
+              flip
+              speed={atkOpp ? 0.45 : 0.9}
+            />
+          </div>
         </div>
       </div>
 

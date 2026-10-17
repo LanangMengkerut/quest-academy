@@ -10,6 +10,7 @@ import { ExamOverlay } from "@/components/ExamOverlay";
 import { useSound } from "@/lib/useSound";
 import { sfx } from "@/lib/sfx";
 import { BADGES, starsForScore } from "@/lib/game";
+import { Sprite, CHAR_SPRITES, BOSS_SPRITES } from "@/components/Sprite";
 
 type QuizQuestion = { id: string; q: string; options: string[] };
 
@@ -99,6 +100,11 @@ export function Quiz({
   const [error, setError] = useState<string | null>(null);
   const [playerPose, setPlayerPose] = useState<Pose>("idle");
   const [bossPose, setBossPose] = useState<Pose>("idle");
+  const [avatar, setAvatar] = useState("wizard");
+  const [bossSprite, setBossSprite] = useState<{
+    src: string;
+    aspect: string;
+  } | null>(null);
   const [guardianPose, setGuardianPose] = useState<Pose>("idle");
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const [bubble, setBubble] = useState<Bubble | null>(null);
@@ -129,6 +135,38 @@ export function Quiz({
     const timers = timersRef.current;
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, []);
+
+  // Sprite karakter pemain dari profil.
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar")
+        .eq("id", user.id)
+        .single();
+      if (data?.avatar && CHAR_SPRITES[data.avatar]) setAvatar(data.avatar);
+    })();
+  }, []);
+
+  // Sprite boss dari kolom boss_sprite di courses.
+  useEffect(() => {
+    if (!session?.course_id) return;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("courses")
+        .select("boss_sprite")
+        .eq("id", session.course_id)
+        .single();
+      const b = data?.boss_sprite ? BOSS_SPRITES[data.boss_sprite] : undefined;
+      setBossSprite(b ?? null);
+    })();
+  }, [session?.course_id]);
 
   const addFloater = useCallback(
     (side: Floater["side"], text: string, cls: string) => {
@@ -524,14 +562,18 @@ export function Quiz({
         later(() => say("boss", BOSS_ENRAGE), 700);
       }
     } else {
-      setBossPose("attack");
-      setPlayerPose("hit");
-      addFloater("player", "-1 HP", "dmg");
-      if (Math.random() < 0.55) say("boss", pick(BOSS_TAUNT));
+      // Pemain tetap menyerang (animasi saja — meleset), lalu boss menyerang balik.
+      setPlayerPose("attack");
+      later(() => {
+        setBossPose("attack");
+        setPlayerPose("hit");
+        addFloater("player", "-1 HP", "dmg");
+        if (Math.random() < 0.55) say("boss", pick(BOSS_TAUNT));
+      }, 380);
       later(() => {
         setBossPose("idle");
         setPlayerPose("idle");
-      }, 600);
+      }, 1000);
     }
 
     if (r.correct) sfx.correct(muted);
@@ -587,7 +629,7 @@ export function Quiz({
         {kind === "battle" ? (
           <div className="fighters">
             <div className="fighter you">
-              <div className="fname">🧙 KAMU</div>
+              <div className="fname">⚔️ KAMU</div>
               <div className="fstage">
                 {renderBubble("player")}
                 {renderFloaters("player")}
@@ -595,13 +637,14 @@ export function Quiz({
                   animate={poseAnimate(playerPose, 1)}
                   transition={{ duration: 0.55, ease: "easeInOut" }}
                 >
-                  <motion.div
-                    className="femoji"
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ repeat: Infinity, duration: 2.1, ease: "easeInOut" }}
-                  >
-                    {playerHp === 1 && playerPose === "idle" ? "😰" : "🧙"}
-                  </motion.div>
+                  <Sprite
+                    src={CHAR_SPRITES[avatar] ?? CHAR_SPRITES.wizard}
+                    rows={3}
+                    row={playerPose === "attack" ? 1 : 0}
+                    frameAspect="480/426"
+                    size={104}
+                    speed={playerPose === "attack" ? 0.45 : 0.9}
+                  />
                 </motion.div>
                 <div className="fshadow" />
               </div>
@@ -621,7 +664,7 @@ export function Quiz({
             </motion.div>
             <div className={`fighter boss ${bossEnraged ? "enraged" : ""}`}>
               <div className="fname">
-                {session.boss_icon} {session.boss_name}
+                {session.boss_name}
                 {bossEnraged ? " 🔥" : ""}
               </div>
               <div className="fstage">
@@ -631,13 +674,24 @@ export function Quiz({
                   animate={poseAnimate(bossPose, -1)}
                   transition={{ duration: 0.55, ease: "easeInOut" }}
                 >
-                  <motion.div
-                    className="femoji"
-                    animate={{ y: [0, -8, 0], rotate: [0, -2, 2, 0] }}
-                    transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
-                  >
-                    {session.boss_icon}
-                  </motion.div>
+                  {bossSprite ? (
+                    <Sprite
+                      src={bossSprite.src}
+                      rows={1}
+                      row={0}
+                      frameAspect={bossSprite.aspect}
+                      size={120}
+                      flip
+                    />
+                  ) : (
+                    <motion.div
+                      className="femoji"
+                      animate={{ y: [0, -8, 0], rotate: [0, -2, 2, 0] }}
+                      transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+                    >
+                      {session.boss_icon}
+                    </motion.div>
+                  )}
                 </motion.div>
                 <div className="fshadow" />
               </div>

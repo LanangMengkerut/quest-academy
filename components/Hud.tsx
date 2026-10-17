@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { levelOf, RANKS, xpForLevel } from "@/lib/game";
@@ -8,6 +9,8 @@ import { useSound } from "@/lib/useSound";
 import { useMusic } from "@/lib/useMusic";
 import { sfx } from "@/lib/sfx";
 import { createClient } from "@/lib/supabase/client";
+import { Avatar } from "./Avatar";
+import { AvatarPicker } from "./AvatarPicker";
 
 export type ProfileLite = {
   username: string;
@@ -18,6 +21,7 @@ export type ProfileLite = {
 
 export function Hud({ profile }: { profile: ProfileLite }) {
   const [sound, toggleSound] = useSound();
+  const [pickOpen, setPickOpen] = useState(false);
   const lvl = levelOf(profile.xp);
   const cur = xpForLevel(lvl);
   const nxt = xpForLevel(lvl + 1);
@@ -26,7 +30,20 @@ export function Hud({ profile }: { profile: ProfileLite }) {
 
   return (
     <div className="hud">
-      <div className="avatar">{profile.avatar}</div>
+      <div
+        className="avatar"
+        onClick={() => setPickOpen(true)}
+        title="Ganti karakter"
+        role="button"
+      >
+        <Avatar value={profile.avatar} size={40} />
+      </div>
+      {pickOpen && (
+        <AvatarPicker
+          current={profile.avatar}
+          onClose={() => setPickOpen(false)}
+        />
+      )}
       <div className="who">
         <div className="lvl">LV {lvl}</div>
         <div className="rank">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { levelOf, rankOf } from "@/lib/game";
 import { Reveal } from "@/components/Reveal";
+import { Avatar } from "@/components/Avatar";
 
 type Row = {
   id: string;
@@ -68,7 +69,12 @@ export default async function LeaderboardPage() {
               <tr key={r.id} className={user && r.id === user.id ? "me" : ""}>
                 <td className="rk">{i + 1}</td>
                 <td>
-                  {r.avatar} <b>{r.username}</b>
+                  <span
+                    style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                  >
+                    <Avatar value={r.avatar} size={30} />
+                    <b>{r.username}</b>
+                  </span>
                   <br />
                   <small style={{ color: "var(--dim)" }}>
                     {rankOf(r.xp)} · {r.wins}/{r.plays} menang
