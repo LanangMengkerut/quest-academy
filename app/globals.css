@@ -360,6 +360,13 @@ table.lb .rk { font-family: var(--font-pixel); font-size: 11px; color: var(--cya
   filter: drop-shadow(0 0 14px #f87171cc);
   animation: enragePulse 0.7s ease-in-out infinite;
 }
+.fighter.enraged .sprite {
+  filter: drop-shadow(0 0 14px #f87171cc) saturate(1.4);
+}
+/* goyang saat kena serangan (arena) */
+.fhit .sprite {
+  animation: spr-x var(--sp-dur, 0.9s) steps(4) infinite, shake 0.45s;
+}
 @keyframes enragePulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.07); }
@@ -411,3 +418,40 @@ table.lb .rk { font-family: var(--font-pixel); font-size: 11px; color: var(--cya
   background: var(--panel);
 }
 .exam-chip.warn { color: var(--red); border-color: var(--red); }
+
+/* ---------- sprite characters ---------- */
+.sprite {
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  animation: spr-x var(--sp-dur, 0.9s) steps(4) infinite;
+}
+@keyframes spr-x {
+  from { background-position-x: 0; }
+  to { background-position-x: calc(var(--sp-fw) * -4); }
+}
+.hud .avatar { cursor: pointer; overflow: hidden; }
+.modalback {
+  position: fixed; inset: 0; z-index: 60;
+  background: rgba(3, 5, 15, 0.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal {
+  background: var(--panel); border: 3px solid var(--line);
+  border-radius: 16px; padding: 26px; max-width: 440px; width: 100%;
+  text-align: center;
+}
+.modal h2 {
+  font-family: var(--font-pixel); font-size: 13px;
+  color: var(--gold); margin: 0 0 18px;
+}
+.charpick { display: flex; gap: 12px; justify-content: center; margin-bottom: 18px; }
+.charopt {
+  background: #0a0f24; border: 2px solid var(--line); border-radius: 12px;
+  padding: 12px 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: var(--text); font-family: var(--font-pixel); font-size: 9px;
+}
+.charopt:hover:not(:disabled) { border-color: var(--cyan); }
+.charopt.active { border-color: var(--gold); box-shadow: 0 0 12px #ffd23f44; }
+.charopt:disabled { opacity: 0.6; cursor: default; }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Avatar } from "@/components/Avatar";
 
 type Room = {
   id: string;
@@ -220,7 +221,9 @@ export default function ArenaWaiting() {
       </h2>
       {players.map((p) => (
         <div className="player-row" key={p.user_id}>
-          <span className="pemoji">{p.avatar}</span>
+          <span className="pemoji">
+            <Avatar value={p.avatar} size={38} />
+          </span>
           <span className="pname">
             {p.username}
             {p.user_id === me ? " (kamu)" : ""}

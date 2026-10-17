@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Reveal } from "@/components/Reveal";
+import { Avatar } from "@/components/Avatar";
 
 type Row = {
   user_id: string;
@@ -94,7 +95,16 @@ export default async function ArenaLeaderboard({
                 <tr key={r.user_id}>
                   <td>{i + 1}</td>
                   <td>
-                    {r.profiles?.avatar ?? "🧙"} {r.profiles?.username ?? "?"}
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Avatar value={r.profiles?.avatar ?? "wizard"} size={30} />
+                      {r.profiles?.username ?? "?"}
+                    </span>
                   </td>
                   <td style={{ color: "var(--gold)", fontWeight: 700 }}>
                     {r.wins}
