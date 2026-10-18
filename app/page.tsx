@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { BADGES } from "@/lib/game";
-import { WorldGrid } from "@/components/WorldGrid";
+import { WorldCarousel } from "@/components/WorldCarousel";
 import { Reveal } from "@/components/Reveal";
 import type { Course } from "@/lib/types";
 
@@ -71,7 +71,7 @@ export default async function HomePage() {
         </p>
       ) : null}
       <div className="press-start">▼ PILIH DUNIAMU ▼</div>
-      <WorldGrid
+      <WorldCarousel
         courses={courses}
         stats={Array.from(stats.entries()).map(([courseId, v]) => ({
           courseId,

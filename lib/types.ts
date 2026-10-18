@@ -5,6 +5,7 @@ export type Course = {
   icon: string;
   boss_icon: string;
   boss_name: string;
+  boss_sprite: string | null;
   color: string;
   sort_order: number;
 };

@@ -13,22 +13,110 @@ type Engine = {
   ctx: AudioContext;
   master: GainNode;
   nodes: OscillatorNode[];
+  drone: OscillatorNode[];
+  bp: BiquadFilterNode;
   timer: number | null;
 };
 
 let engine: Engine | null = null;
 let starting = false;
 
-const PLUCK_FREQS = [220, 261.63, 293.66, 329.63, 392, 440]; // A C D E G A
-const BELL_FREQS = [110, 130.81, 164.81]; // low A, C, E
+/**
+ * Music moods per world (course id). Each world gets its own root,
+ * scale, echo and pluck cadence so browsing the world picker audibly
+ * changes the atmosphere. "default" is the original dungeon mood.
+ */
+type Mood = {
+  drone: [number, number, number];
+  plucks: number[];
+  bells: [number, number, number];
+  delay: number;
+  gapMin: number;
+  gapMax: number;
+  bp: number;
+};
+
+const MOODS: Record<string, Mood> = {
+  default: {
+    drone: [55, 65.41, 82.41], // A1 C2 E2
+    plucks: [220, 261.63, 293.66, 329.63, 392, 440], // A C D E G A
+    bells: [110, 130.81, 164.81],
+    delay: 0.34,
+    gapMin: 2600,
+    gapMax: 7800,
+    bp: 480,
+  },
+  jarkom: {
+    // cyan — network dungeon: same A root, tighter echo, busier plucks
+    drone: [55, 65.41, 82.41],
+    plucks: [220, 261.63, 293.66, 329.63, 392, 440, 523.25],
+    bells: [110, 130.81, 164.81],
+    delay: 0.27,
+    gapMin: 2000,
+    gapMax: 5600,
+    bp: 540,
+  },
+  ib: {
+    // magenta — mysterious AI: D minor, sparse, long echo
+    drone: [73.42, 87.31, 110], // D2 F2 A2
+    plucks: [293.66, 349.23, 392, 440, 523.25, 587.33], // D F G A C D
+    bells: [146.83, 174.61, 220],
+    delay: 0.46,
+    gapMin: 3400,
+    gapMax: 9000,
+    bp: 380,
+  },
+  pemweb: {
+    // orange — bright code world: G major, lively cadence
+    drone: [98, 123.47, 146.83], // G2 B2 D3
+    plucks: [392, 440, 493.88, 587.33, 659.25, 783.99], // G A B D E G
+    bells: [196, 246.94, 293.66],
+    delay: 0.23,
+    gapMin: 1700,
+    gapMax: 4600,
+    bp: 620,
+  },
+};
+
+let currentMoodId = "default";
+const mood = (): Mood => MOODS[currentMoodId] ?? MOODS.default;
+
+/** Switch the music mood (world picker calls this per focused world). */
+export function setMusicMood(id: string) {
+  currentMoodId = MOODS[id] ? id : "default";
+  if (!engine) return;
+  const m = mood();
+  const t = engine.ctx.currentTime;
+  engine.drone.forEach((o, i) => {
+    try {
+      o.frequency.cancelScheduledValues(t);
+      o.frequency.setValueAtTime(o.frequency.value, t);
+      o.frequency.linearRampToValueAtTime(m.drone[i], t + 1.4);
+    } catch {
+      /* ignore */
+    }
+  });
+  try {
+    engine.bp.frequency.cancelScheduledValues(t);
+    engine.bp.frequency.setValueAtTime(engine.bp.frequency.value, t);
+    engine.bp.frequency.linearRampToValueAtTime(m.bp, t + 1.4);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getMusicMood() {
+  return currentMoodId;
+}
 
 function schedulePluck(ctx: AudioContext, master: GainNode) {
   if (!engine) return;
+  const m = mood();
   const now = ctx.currentTime;
   const isBell = Math.random() < 0.22;
   const freq = isBell
-    ? BELL_FREQS[Math.floor(Math.random() * BELL_FREQS.length)]
-    : PLUCK_FREQS[Math.floor(Math.random() * PLUCK_FREQS.length)];
+    ? m.bells[Math.floor(Math.random() * m.bells.length)]
+    : m.plucks[Math.floor(Math.random() * m.plucks.length)];
 
   const osc = ctx.createOscillator();
   osc.type = isBell ? "sine" : "triangle";
@@ -43,7 +131,7 @@ function schedulePluck(ctx: AudioContext, master: GainNode) {
 
   // simple dungeon echo: feedback delay, shared per note to keep it cheap
   const delay = ctx.createDelay(1);
-  delay.delayTime.value = 0.34;
+  delay.delayTime.value = m.delay;
   const feedback = ctx.createGain();
   feedback.gain.value = 0.32;
   const wet = ctx.createGain();
@@ -61,7 +149,7 @@ function schedulePluck(ctx: AudioContext, master: GainNode) {
 
   engine.timer = window.setTimeout(
     () => schedulePluck(ctx, master),
-    2600 + Math.random() * 5200,
+    m.gapMin + Math.random() * (m.gapMax - m.gapMin),
   );
 }
 
@@ -78,8 +166,9 @@ export function startDungeonMusic() {
     master.connect(ctx.destination);
 
     const nodes: OscillatorNode[] = [];
+    const m = mood();
 
-    // low drone: A1 + C2 + E2 through a slowly sweeping lowpass filter
+    // low drone triad (per current mood) through a sweeping lowpass filter
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
     filter.frequency.value = 260;
@@ -88,7 +177,8 @@ export function startDungeonMusic() {
     droneGain.gain.value = 0.055;
     filter.connect(droneGain);
     droneGain.connect(master);
-    [55, 65.41, 82.41].forEach((f, i) => {
+    const drone: OscillatorNode[] = [];
+    m.drone.forEach((f, i) => {
       const o = ctx.createOscillator();
       o.type = i === 0 ? "sine" : "triangle";
       o.frequency.value = f;
@@ -96,6 +186,7 @@ export function startDungeonMusic() {
       o.connect(filter);
       o.start();
       nodes.push(o);
+      drone.push(o);
     });
     const lfo = ctx.createOscillator();
     lfo.frequency.value = 0.05;
@@ -116,7 +207,7 @@ export function startDungeonMusic() {
     noise.loop = true;
     const bp = ctx.createBiquadFilter();
     bp.type = "bandpass";
-    bp.frequency.value = 480;
+    bp.frequency.value = m.bp;
     bp.Q.value = 0.6;
     const windGain = ctx.createGain();
     windGain.gain.value = 0.012;
@@ -133,7 +224,7 @@ export function startDungeonMusic() {
     windLfo.start();
     nodes.push(windLfo);
 
-    engine = { ctx, master, nodes, timer: null };
+    engine = { ctx, master, nodes, drone, bp, timer: null };
     engine.timer = window.setTimeout(() => schedulePluck(ctx, master), 1200);
   } catch {
     /* audio unsupported */
