@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useExamGuard, exitFullscreen, MAX_VIOLATIONS } from "@/lib/useExamGuard";
 import { ExamOverlay } from "@/components/ExamOverlay";
 import { useSound } from "@/lib/useSound";
+import { setMusicScene, setMusicIntense } from "@/lib/music";
 import { sfx } from "@/lib/sfx";
 import { BADGES, starsForScore } from "@/lib/game";
 import { Sprite, CHAR_SPRITES, BOSS_SPRITES } from "@/components/Sprite";
@@ -115,6 +116,33 @@ export function Quiz({
   const timersRef = useRef<number[]>([]);
   const fxIdRef = useRef(0);
   const enragedRef = useRef(false);
+
+  // Music: the battle scene plays while a battle session is live, and
+  // turns intense when the boss is nearly down or the player nearly out.
+  useEffect(() => {
+    if (kind !== "battle") return;
+    setMusicScene(begun && !final && !dq ? "battle" : "dashboard");
+  }, [kind, begun, final, dq]);
+
+  useEffect(() => {
+    if (kind !== "battle" || !begun || final || dq || !session) {
+      setMusicIntense(false);
+      return;
+    }
+    const bPct = session.questions.length
+      ? (bossHp / session.questions.length) * 100
+      : 100;
+    const pPct = (playerHp / 3) * 100;
+    setMusicIntense(bPct <= 34 || pPct <= 34);
+  }, [kind, begun, final, dq, session, bossHp, playerHp]);
+
+  useEffect(
+    () => () => {
+      setMusicScene("dashboard");
+      setMusicIntense(false);
+    },
+    [],
+  );
 
   // Mode Fokus: battle only, checkpoint is never guarded.
   const exam = useExamGuard({

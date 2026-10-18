@@ -3,6 +3,7 @@ import "./globals.css";
 import { createClient } from "@/lib/supabase/server";
 import { Hud, TopNav, type ProfileLite } from "@/components/Hud";
 import { MusicEngine } from "@/components/MusicEngine";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Quest Academy — Belajar Sambil Main",
@@ -51,6 +52,7 @@ export default async function RootLayout({
           {profile ? <Hud profile={profile} /> : null}
           <TopNav loggedIn={!!user} />
           {children}
+          <SiteFooter />
         </div>
       </body>
     </html>

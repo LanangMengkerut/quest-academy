@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Reveal } from "@/components/Reveal";
 import { Avatar } from "@/components/Avatar";
+import { MusicScene } from "@/components/MusicScene";
 
 type Row = {
   user_id: string;
@@ -35,6 +36,7 @@ export default async function ArenaLeaderboard({
 
   return (
     <div className="lbwrap">
+      <MusicScene scene="arena" />
       <h1 className="logo" style={{ fontSize: 26 }}>
         🏆 LEADERBOARD ARENA
       </h1>

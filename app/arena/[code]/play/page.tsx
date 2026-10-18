@@ -8,6 +8,7 @@ import { useExamGuard, exitFullscreen, MAX_VIOLATIONS } from "@/lib/useExamGuard
 import { ExamOverlay } from "@/components/ExamOverlay";
 import { Sprite, CHAR_SPRITES } from "@/components/Sprite";
 import { Avatar } from "@/components/Avatar";
+import { setMusicScene } from "@/lib/music";
 
 type Fighter = {
   id: string;
@@ -33,6 +34,11 @@ export default function ArenaBattle() {
   const params = useParams();
   const router = useRouter();
   const code = String(params.code ?? "").toUpperCase();
+
+  useEffect(() => {
+    setMusicScene("arena");
+    return () => setMusicScene("dashboard");
+  }, []);
 
   const [roomId, setRoomId] = useState("");
   const [me, setMe] = useState<Fighter | null>(null);

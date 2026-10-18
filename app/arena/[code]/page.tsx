@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/Avatar";
+import { setMusicScene } from "@/lib/music";
 
 type Room = {
   id: string;
@@ -26,6 +27,11 @@ export default function ArenaWaiting() {
   const params = useParams();
   const router = useRouter();
   const code = String(params.code ?? "").toUpperCase();
+
+  useEffect(() => {
+    setMusicScene("arena");
+    return () => setMusicScene("dashboard");
+  }, []);
 
   const [me, setMe] = useState<string>("");
   const [room, setRoom] = useState<Room | null>(null);

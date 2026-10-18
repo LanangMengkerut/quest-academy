@@ -107,14 +107,6 @@ export default async function HomePage() {
           </div>
         </Reveal>
       ) : null}
-      <footer>
-        <div className="pixel">QUEST ACADEMY v2.0 — DINAMIS</div>
-        <div style={{ marginTop: 8 }}>
-          {user
-            ? "Progres tersimpan di akunmu, bisa lanjut di perangkat mana pun."
-            : "Progres tersimpan di akunmu setelah kamu masuk."}
-        </div>
-      </footer>
     </div>
   );
 }

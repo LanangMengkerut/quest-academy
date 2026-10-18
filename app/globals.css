@@ -496,3 +496,13 @@ table.lb .rk { font-family: var(--font-pixel); font-size: 11px; color: var(--cya
   .sc-arrow { top: 216px; width: 40px; height: 40px; font-size: 22px; }
   .sc-arrow.left { left: 2px; } .sc-arrow.right { right: 2px; }
 }
+
+/* ---------- site footer ---------- */
+.site-footer { padding-bottom: 10px; }
+.built-by { margin-top: 10px; font-size: 13px; }
+.built-by b { color: var(--text); }
+.contrib-label { font-family: var(--font-pixel); font-size: 8px; color: #3a4066; letter-spacing: 1px; margin-top: 18px; }
+.contrib-chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+.contrib-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel); border: 2px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 6px; color: var(--text); text-decoration: none; font-size: 13px; }
+.contrib-chip:hover { border-color: var(--gold); }
+.contrib-chip img { border-radius: 50%; display: block; }

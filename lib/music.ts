@@ -34,7 +34,35 @@ type Mood = {
   gapMin: number;
   gapMax: number;
   bp: number;
+  bellChance?: number;
 };
+
+/** Scene moods: battle and arena get their own atmosphere. */
+const SCENE_MOODS: Record<"battle" | "arena", Mood> = {
+  battle: {
+    // tense diminished drone (A C Eb), driving cadence, tight echo
+    drone: [55, 65.41, 77.78],
+    plucks: [220, 261.63, 311.13, 329.63, 392, 415.3], // A C Eb E G Ab
+    bells: [110, 130.81, 155.56],
+    delay: 0.19,
+    gapMin: 1200,
+    gapMax: 3000,
+    bp: 700,
+    bellChance: 0.3,
+  },
+  arena: {
+    // competitive C minor: mid-tempo, expectant
+    drone: [65.41, 77.78, 98], // C2 Eb2 G2
+    plucks: [261.63, 311.13, 349.23, 392, 466.16, 523.25], // C Eb F G Bb C
+    bells: [130.81, 155.56, 196],
+    delay: 0.28,
+    gapMin: 1500,
+    gapMax: 3600,
+    bp: 520,
+  },
+};
+
+export type MusicScene = "dashboard" | "battle" | "arena";
 
 const MOODS: Record<string, Mood> = {
   default: {
@@ -78,12 +106,19 @@ const MOODS: Record<string, Mood> = {
   },
 };
 
-let currentMoodId = "default";
-const mood = (): Mood => MOODS[currentMoodId] ?? MOODS.default;
+let scene: MusicScene = "dashboard";
+let worldId = "default";
+let intense = false;
 
-/** Switch the music mood (world picker calls this per focused world). */
-export function setMusicMood(id: string) {
-  currentMoodId = MOODS[id] ? id : "default";
+const mood = (): Mood =>
+  scene === "battle"
+    ? SCENE_MOODS.battle
+    : scene === "arena"
+      ? SCENE_MOODS.arena
+      : (MOODS[worldId] ?? MOODS.default);
+
+/** Smoothly retune the running engine to the currently effective mood. */
+function applyMoodLive() {
   if (!engine) return;
   const m = mood();
   const t = engine.ctx.currentTime;
@@ -105,15 +140,50 @@ export function setMusicMood(id: string) {
   }
 }
 
+/** World mood for the dashboard (world picker calls this per focused world). */
+export function setMusicMood(id: string) {
+  worldId = MOODS[id] ? id : "default";
+  if (scene === "dashboard") applyMoodLive();
+}
+
 export function getMusicMood() {
-  return currentMoodId;
+  return worldId;
+}
+
+/** Switch scene: dashboard (default) / battle / arena. */
+export function setMusicScene(s: MusicScene) {
+  if (s === scene) return;
+  scene = s;
+  if (s !== "battle") intense = false;
+  applyMoodLive();
+}
+
+export function getMusicScene() {
+  return scene;
+}
+
+/**
+ * Battle intensity: while on, plucks come faster and low bells ring
+ * more often. Reschedules the next pluck immediately so the change
+ * is felt at once.
+ */
+export function setMusicIntense(on: boolean) {
+  if (on === intense) return;
+  intense = on;
+  if (engine && engine.timer !== null) {
+    window.clearTimeout(engine.timer);
+    engine.timer = null;
+    schedulePluck(engine.ctx, engine.master);
+  }
 }
 
 function schedulePluck(ctx: AudioContext, master: GainNode) {
   if (!engine) return;
   const m = mood();
   const now = ctx.currentTime;
-  const isBell = Math.random() < 0.22;
+  const bellP =
+    (m.bellChance ?? 0.22) + (intense && scene === "battle" ? 0.12 : 0);
+  const isBell = Math.random() < bellP;
   const freq = isBell
     ? m.bells[Math.floor(Math.random() * m.bells.length)]
     : m.plucks[Math.floor(Math.random() * m.plucks.length)];
@@ -147,9 +217,10 @@ function schedulePluck(ctx: AudioContext, master: GainNode) {
   osc.start(now);
   osc.stop(now + decay + 0.1);
 
+  const gapScale = intense && scene === "battle" ? 0.55 : 1;
   engine.timer = window.setTimeout(
     () => schedulePluck(ctx, master),
-    m.gapMin + Math.random() * (m.gapMax - m.gapMin),
+    (m.gapMin + Math.random() * (m.gapMax - m.gapMin)) * gapScale,
   );
 }
 

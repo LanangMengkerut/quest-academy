@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { MusicScene } from "@/components/MusicScene";
 
 export default function ArenaHub() {
   const router = useRouter();
@@ -63,6 +64,7 @@ export default function ArenaHub() {
 
   return (
     <div className="lbwrap">
+      <MusicScene scene="arena" />
       <h1 className="logo" style={{ fontSize: 26 }}>
         ⚔️ ARENA
       </h1>
